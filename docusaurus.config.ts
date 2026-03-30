@@ -42,31 +42,12 @@ const config: Config = {
     },
   },
 
-  plugins: [
-    [
-      require.resolve('@easyops-cn/docusaurus-search-local'),
-      {
-        hashed: true,
-        language: ['en'],
-        searchBarShortcutHint: false,
-        docsRouteBasePath: '/docs',
-        indexDocs: true,
-        indexBlog: false,
-        indexPages: false,
-      },
-    ],
-  ],
-
   presets: [
     [
       'classic',
       {
-        docs: {
-          sidebarPath: './sidebars.ts',
-          showLastUpdateAuthor: true,
-          showLastUpdateTime: true,
-          editUrl: undefined,
-        },
+        // Docs disabled — content is now fully dynamic via Supabase
+        docs: false,
         blog: false,
         theme: {
           customCss: './src/css/custom.css',
@@ -93,38 +74,44 @@ const config: Config = {
       hideOnScroll: false,
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'hrdSidebar',
+          to: '/documents',
+          label: '📚 Dokumen',
           position: 'left',
+        },
+        {
+          to: '/documents?dept=hrd',
           label: 'HRD',
+          position: 'left',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'financeSidebar',
-          position: 'left',
+          to: '/documents?dept=finance',
           label: 'Finance',
+          position: 'left',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'operasionalSidebar',
-          position: 'left',
+          to: '/documents?dept=operasional',
           label: 'Operasional',
+          position: 'left',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'itSidebar',
-          position: 'left',
+          to: '/documents?dept=it',
           label: 'IT',
+          position: 'left',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'legalSidebar',
-          position: 'left',
+          to: '/documents?dept=legal',
           label: 'Legal',
+          position: 'left',
         },
         {
           type: 'localeDropdown',
           position: 'right',
+        },
+        {
+          to: '/admin',
+          label: '⚙️',
+          position: 'right',
+          className: 'navbar-admin-btn',
         },
         {
           to: '/login',
@@ -138,13 +125,13 @@ const config: Config = {
       style: 'light',
       links: [
         {
-          title: 'Department',
+          title: 'Departemen',
           items: [
-            { label: 'HRD', to: '/docs/hrd/intro' },
-            { label: 'Finance', to: '/docs/finance/intro' },
-            { label: 'Operasional', to: '/docs/operasional/intro' },
-            { label: 'IT', to: '/docs/it/intro' },
-            { label: 'Legal', to: '/docs/legal/intro' },
+            { label: 'HRD', to: '/documents?dept=hrd' },
+            { label: 'Finance', to: '/documents?dept=finance' },
+            { label: 'Operasional', to: '/documents?dept=operasional' },
+            { label: 'IT', to: '/documents?dept=it' },
+            { label: 'Legal', to: '/documents?dept=legal' },
           ],
         },
         {
@@ -152,28 +139,21 @@ const config: Config = {
           items: [
             { label: 'Masuk / Login', to: '/login' },
             { label: 'Dashboard Admin', to: '/admin' },
-            { label: 'Info Peran', to: '/role-info' },
+            { label: 'Semua Dokumen', to: '/documents' },
           ],
         },
         {
           title: 'Sistem',
           items: [
             { label: 'Tentang KMS', to: '/about' },
-            { label: 'Panduan Penggunaan', to: '/docs/panduan/intro' },
           ],
         },
       ],
-      copyright: `© ${new Date().getFullYear()} STex. Knowledge Management System.`,
+      copyright: `© ${new Date().getFullYear()} STex. Knowledge Management System — Powered by Supabase.`,
     },
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
-    },
-    docs: {
-      sidebar: {
-        hideable: true,
-        autoCollapseCategories: true,
-      },
     },
   } satisfies Preset.ThemeConfig,
 };

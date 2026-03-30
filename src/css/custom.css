@@ -1,5 +1,5 @@
 /* ============================================================
-   STex KMS – Custom CSS Design System
+   STex KMS — Custom CSS Design System
    Primary: #2D3192  |  Accent: #2BB1E0  |  BG: #ffffff
    ============================================================ */
 
@@ -130,6 +130,79 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff !important;
   transform: translateY(-1px);
 }
+/* Admin button - hidden by default, shown via JS */
+.navbar-admin-btn {
+  font-size: 1.1rem !important;
+  padding: 4px 10px !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* ── Navbar Auth: hide/show based on auth state ── */
+[data-kms-auth="logged-in"] .navbar-login-btn {
+  display: none !important;
+}
+[data-kms-auth="logged-out"] .navbar-admin-btn {
+  display: none !important;
+}
+/* Only show admin button for admin role */
+[data-kms-auth="logged-in"]:not([data-kms-role="admin"]) .navbar-admin-btn {
+  display: none !important;
+}
+/* User menu injected by Root.tsx */
+.kms-user-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+.kms-user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  cursor: default;
+  white-space: nowrap;
+}
+.kms-user-badge__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--kms-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.kms-logout-btn {
+  background: rgba(255,255,255,0.12) !important;
+  color: rgba(255,255,255,0.9) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  padding: 5px 12px !important;
+  border-radius: 6px !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  text-decoration: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.kms-logout-btn:hover {
+  background: rgba(220,38,38,0.8) !important;
+  border-color: rgba(220,38,38,0.6) !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
 
 /* ── Sidebar ── */
 .theme-doc-sidebar-container {
@@ -176,6 +249,10 @@ h1, h2, h3, h4, h5, h6 {
 .kms-card:hover {
   box-shadow: var(--kms-shadow-md);
   transform: translateY(-2px);
+}
+/* No hover lift for static cards */
+.kms-card--static:hover {
+  transform: none;
 }
 
 /* ── Role Badges ── */
@@ -276,7 +353,9 @@ h1, h2, h3, h4, h5, h6 {
   color: #374151;
   margin-bottom: 0.4rem;
 }
-.kms-form-group input {
+.kms-form-group input,
+.kms-form-group select,
+.kms-form-group textarea {
   width: 100%;
   padding: 10px 14px;
   border: 1.5px solid #e5e7eb;
@@ -289,9 +368,15 @@ h1, h2, h3, h4, h5, h6 {
   background: #fff;
   color: #111827;
 }
-.kms-form-group input:focus {
+.kms-form-group input:focus,
+.kms-form-group select:focus,
+.kms-form-group textarea:focus {
   border-color: var(--kms-accent);
   box-shadow: 0 0 0 3px rgba(43,177,224,0.15);
+}
+.kms-form-group textarea {
+  resize: vertical;
+  min-height: 120px;
 }
 .kms-btn {
   display: inline-flex;
@@ -328,6 +413,7 @@ h1, h2, h3, h4, h5, h6 {
 .kms-btn--accent:hover {
   background: var(--kms-accent-hover);
   color: #ffffff;
+  text-decoration: none;
 }
 .kms-btn--ghost {
   background: transparent;
@@ -336,6 +422,35 @@ h1, h2, h3, h4, h5, h6 {
 }
 .kms-btn--ghost:hover {
   background: var(--kms-primary-light);
+  text-decoration: none;
+}
+.kms-btn--danger {
+  background: var(--kms-danger);
+  color: #ffffff;
+}
+.kms-btn--danger:hover {
+  background: #b91c1c;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+/* ── Loading Spinner ── */
+.kms-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--ifm-toc-border-color);
+  border-top-color: var(--kms-accent);
+  border-radius: 50%;
+  animation: kms-spin 0.7s linear infinite;
+  margin: 0 auto;
+}
+.kms-spinner--sm {
+  width: 20px;
+  height: 20px;
+  border-width: 2.5px;
+}
+@keyframes kms-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ── Version History ── */
@@ -566,6 +681,168 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--kms-success);
   color: #14532d;
 }
+.kms-notice--danger {
+  background: #fef2f2;
+  border-color: var(--kms-danger);
+  color: #7f1d1d;
+}
+
+/* ── Document Editor ── */
+.kms-editor {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+.kms-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.kms-editor__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0rem;
+}
+@media (max-width: 600px) {
+  .kms-editor__form-row {
+    grid-template-columns: 1fr;
+  }
+}
+.kms-editor__content-area {
+  width: 100%;
+  min-height: 400px;
+  padding: 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+  background: #fff;
+  color: #111827;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.kms-editor__content-area:focus {
+  border-color: var(--kms-accent);
+  box-shadow: 0 0 0 3px rgba(43,177,224,0.12);
+}
+.kms-editor__toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.kms-editor__toolbar button {
+  padding: 6px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.15s ease;
+}
+.kms-editor__toolbar button:hover {
+  border-color: var(--kms-accent);
+  color: var(--kms-accent);
+  background: var(--kms-accent-light);
+}
+.kms-editor__preview {
+  min-height: 400px;
+  padding: 1.5rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  line-height: 1.8;
+  color: #374151;
+  font-size: 0.95rem;
+}
+.kms-editor__tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--ifm-toc-border-color);
+}
+.kms-editor__tab {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  background: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.kms-editor__tab--active {
+  font-weight: 700;
+  color: var(--kms-accent);
+  border-bottom-color: var(--kms-accent);
+}
+
+/* ── About Page ── */
+.kms-about {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+.kms-about__hero {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+.kms-about__hero h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+.kms-about__hero p {
+  font-size: 1.05rem;
+  color: #6b7280;
+  max-width: 500px;
+  margin: 0 auto;
+}
+.kms-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin: 2rem 0;
+}
+.kms-feature-card {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: var(--ifm-card-border-radius);
+  padding: 1.5rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.kms-feature-card:hover {
+  box-shadow: var(--kms-shadow-md);
+  transform: translateY(-2px);
+}
+.kms-feature-card__icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+.kms-feature-card__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--kms-primary);
+  margin: 0 0 0.5rem;
+}
+.kms-feature-card__desc {
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.55;
+  margin: 0;
+}
 
 /* ── Responsive / Mobile ── */
 @media (max-width: 768px) {
@@ -585,6 +862,9 @@ h1, h2, h3, h4, h5, h6 {
   .navbar__title {
     font-size: 1rem;
   }
+  .kms-user-badge {
+    display: none;
+  }
 }
 @media (max-width: 480px) {
   .kms-dept-grid {
@@ -592,6 +872,9 @@ h1, h2, h3, h4, h5, h6 {
   }
   .kms-stats-grid {
     grid-template-columns: 1fr 1fr;
+  }
+  .kms-feature-grid {
+    grid-template-columns: 1fr;
   }
 }
 

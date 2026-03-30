@@ -1,10 +1,12 @@
 import React, { useState, FormEvent } from 'react';
 import Layout from '@theme/Layout';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const { i18n } = useDocusaurusContext();
   const isEn = i18n.currentLocale === 'en';
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,16 +20,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Dynamically import Firebase auth to avoid SSR issues
-      const { auth } = await import('../lib/firebase');
-      const { signInWithEmailAndPassword } = await import('firebase/auth');
-      await signInWithEmailAndPassword(auth, email, password);
+      await login(email, password);
       window.location.href = '/';
     } catch (err: any) {
-      const code = err?.code || '';
-      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      const msg = err?.message || '';
+      if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
         setError(isEn ? 'Invalid email or password.' : 'Email atau password tidak valid.');
-      } else if (code === 'auth/too-many-requests') {
+      } else if (msg.includes('Email not confirmed')) {
+        setError(isEn ? 'Please confirm your email first.' : 'Harap konfirmasi email Anda terlebih dahulu.');
+      } else if (msg.includes('Too many requests')) {
         setError(isEn ? 'Too many attempts. Please try again later.' : 'Terlalu banyak percobaan. Coba lagi nanti.');
       } else {
         setError(isEn ? 'Login failed. Please check your connection.' : 'Login gagal. Periksa koneksi Anda.');
@@ -137,6 +138,11 @@ export default function LoginPage() {
               ? 'This system is restricted to authorized company personnel only.'
               : 'Sistem ini hanya untuk karyawan perusahaan yang berwenang.'}
           </div>
+
+          {/* Supabase badge */}
+          <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#d1d5db', marginTop: '1.25rem', marginBottom: 0 }}>
+            Powered by Supabase Auth
+          </p>
         </div>
       </div>
     </Layout>

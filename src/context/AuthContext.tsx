@@ -1,28 +1,24 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-  User,
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 
 // ── Types ──────────────────────────────────────────────────
 export type UserRole = 'admin' | 'editor' | 'viewer';
 export type Department = 'hrd' | 'finance' | 'operasional' | 'it' | 'legal' | 'all';
 
 export interface KMSUser {
-  uid: string;
+  id: string;
   email: string;
-  displayName: string;
+  name: string;
+  nomor_induk: string;
   role: UserRole;
+  role_id: string;
   department: Department;
 }
 
 interface AuthContextType {
   currentUser: KMSUser | null;
-  firebaseUser: User | null;
+  session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -38,68 +34,71 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // ── Provider ───────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [currentUser, setCurrentUser] = useState<KMSUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = async (userId: string, email: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, roles(name)')
+        .eq('id', userId)
+        .single();
+
+      if (error || !data) {
+        console.error('Error fetching profile:', error);
+        setCurrentUser(null);
+        return;
+      }
+
+      setCurrentUser({
+        id: userId,
+        email,
+        name: data.name || 'User',
+        nomor_induk: data.nomor_induk || '',
+        role: ((data as any).roles?.name as UserRole) || 'viewer',
+        role_id: data.role_id || '',
+        department: (data.department as Department) || 'all',
+      });
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+      setCurrentUser(null);
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        setFirebaseUser(fbUser);
-        // Fetch role & department from Firestore
-        try {
-          const userDoc = await getDoc(doc(db, 'users', fbUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setCurrentUser({
-              uid: fbUser.uid,
-              email: fbUser.email ?? '',
-              displayName: data.displayName || fbUser.displayName || 'User',
-              role: data.role as UserRole,
-              department: data.department as Department,
-            });
-            // Update last login
-            await setDoc(
-              doc(db, 'users', fbUser.uid),
-              { lastLogin: serverTimestamp() },
-              { merge: true }
-            );
-          } else {
-            // New user — assign default viewer role
-            const newUser: KMSUser = {
-              uid: fbUser.uid,
-              email: fbUser.email ?? '',
-              displayName: fbUser.displayName ?? 'User',
-              role: 'viewer',
-              department: 'all',
-            };
-            await setDoc(doc(db, 'users', fbUser.uid), {
-              ...newUser,
-              createdAt: serverTimestamp(),
-              lastLogin: serverTimestamp(),
-            });
-            setCurrentUser(newUser);
-          }
-        } catch (err) {
-          console.error('Error fetching user data:', err);
-          setCurrentUser(null);
-        }
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchProfile(session.user.id, session.user.email || '').finally(() => setLoading(false));
       } else {
-        setFirebaseUser(null);
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      if (session?.user) {
+        await fetchProfile(session.user.id, session.user.email || '');
+      } else {
         setCurrentUser(null);
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
   const logout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
   };
 
   const isAdmin = currentUser?.role === 'admin';
@@ -107,12 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isViewer = !!currentUser;
   const canEdit = isEditor;
 
-  /**
-   * Check if current user can access a specific department.
-   * - Admin: all departments
-   * - Editor: all departments (read), their own department (write)
-   * - Viewer: only their assigned department (or 'all')
-   */
   const canAccessDepartment = (dept: Department): boolean => {
     if (!currentUser) return false;
     if (isAdmin) return true;
@@ -122,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     currentUser,
-    firebaseUser,
+    session,
     loading,
     login,
     logout,

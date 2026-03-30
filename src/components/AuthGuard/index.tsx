@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
-import type { Department } from '../context/AuthContext.tsx';
+import { useAuth } from '../../context/AuthContext';
+import type { Department } from '../../context/AuthContext';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -66,7 +66,7 @@ export default function AuthGuard({
   if (requiredDepartment && !canAccessDepartment(requiredDepartment)) {
     return (
       <AccessDenied
-        message={`Anda tidak memiliki akses ke department ${requiredDepartment.toUpperCase()}.`}
+        message={`Anda tidak memiliki akses ke departemen ${requiredDepartment.toUpperCase()}.`}
         showDeptInfo
         userDept={currentUser.department}
       />
@@ -92,7 +92,7 @@ function AccessDenied({
       <p style={{ color: '#6b7280', maxWidth: '400px', margin: '0 auto 1rem' }}>{message}</p>
       {showDeptInfo && userDept && (
         <div className="kms-notice kms-notice--lock" style={{ maxWidth: '400px', margin: '0 auto 1.5rem' }}>
-          Department Anda:{' '}
+          Departemen Anda:{' '}
           <strong style={{ textTransform: 'uppercase' }}>{userDept}</strong>
         </div>
       )}

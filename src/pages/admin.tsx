@@ -1,24 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@theme/Layout';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import Link from '@docusaurus/Link';
+import { useAuth } from '../context/AuthContext';
+import { supabase, timeAgo } from '../lib/supabase';
+import type { Profile, ActivityLog, KMSDocument } from '../lib/supabase';
+import AuthGuard from '../components/AuthGuard';
 
-interface AdminUser {
-  uid: string;
-  displayName: string;
-  email: string;
-  role: string;
-  department: string;
-  lastLogin?: string;
+interface AdminProfile extends Profile {
+  roles?: { name: string };
 }
-
-const MOCK_USERS: AdminUser[] = [
-  { uid: '1', displayName: 'Ahmad Supriadi', email: 'ahmad@stex.co.id', role: 'admin', department: 'all', lastLogin: '29 Mar 2026' },
-  { uid: '2', displayName: 'Siti Rahayu', email: 'siti@stex.co.id', role: 'editor', department: 'hrd', lastLogin: '28 Mar 2026' },
-  { uid: '3', displayName: 'Budi Santoso', email: 'budi@stex.co.id', role: 'viewer', department: 'operasional', lastLogin: '29 Mar 2026' },
-  { uid: '4', displayName: 'Dewi Lestari', email: 'dewi@stex.co.id', role: 'editor', department: 'finance', lastLogin: '27 Mar 2026' },
-  { uid: '5', displayName: 'Riko Pratama', email: 'riko@stex.co.id', role: 'viewer', department: 'it', lastLogin: '29 Mar 2026' },
-];
 
 const roleColors: Record<string, string> = {
   admin: 'kms-badge--admin',
@@ -27,36 +17,124 @@ const roleColors: Record<string, string> = {
 };
 const roleIcons: Record<string, string> = { admin: '👑', editor: '✏️', viewer: '👁️' };
 
-export default function AdminPage() {
+const deptLabel = (d: string | null) => {
+  if (!d || d === 'all') return 'Semua';
+  return d.toUpperCase();
+};
+
+function AdminDashboard() {
   const { i18n } = useDocusaurusContext();
   const isEn = i18n.currentLocale === 'en';
-  const [users, setUsers] = useState<AdminUser[]>(MOCK_USERS);
+  const { currentUser } = useAuth();
+
+  const [users, setUsers] = useState<AdminProfile[]>([]);
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const [documents, setDocuments] = useState<KMSDocument[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [loadingData, setLoadingData] = useState(true);
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editRole, setEditRole] = useState('');
+  const [editDept, setEditDept] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'users' | 'documents' | 'logs'>('users');
+
+  const departments = ['all', 'hrd', 'finance', 'operasional', 'it', 'legal'];
+
+  useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const fetchAll = async () => {
+    setLoadingData(true);
+    await Promise.all([fetchUsers(), fetchRoles(), fetchDocuments(), fetchLogs()]);
+    setLoadingData(false);
+  };
+
+  const fetchUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, roles(name)')
+      .order('created_at', { ascending: false });
+    if (!error && data) setUsers(data as AdminProfile[]);
+  };
+
+  const fetchRoles = async () => {
+    const { data } = await supabase.from('roles').select('*').order('name');
+    if (data) setRoles(data);
+  };
+
+  const fetchDocuments = async () => {
+    const { data } = await supabase
+      .from('documents')
+      .select('*, profiles(name)')
+      .order('updated_at', { ascending: false })
+      .limit(20);
+    if (data) setDocuments(data as KMSDocument[]);
+  };
+
+  const fetchLogs = async () => {
+    const { data } = await supabase
+      .from('activity_logs')
+      .select('*, profiles(name), documents(title, slug)')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (data) setActivityLogs(data as ActivityLog[]);
+  };
+
+  const startEdit = (user: AdminProfile) => {
+    setEditingUser(user.id);
+    setEditRole(user.role_id || '');
+    setEditDept(user.department || 'all');
+  };
+
+  const saveUser = async (userId: string) => {
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role_id: editRole, department: editDept })
+      .eq('id', userId);
+    if (!error) {
+      await supabase.from('activity_logs').insert({
+        user_id: currentUser?.id,
+        action: `admin_update_user`,
+        document_id: null,
+      });
+      await fetchUsers();
+    }
+    setSaving(false);
+    setEditingUser(null);
+  };
 
   const filtered = users.filter((u) => {
-    const matchSearch = u.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-      || u.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchRole = filterRole === 'all' || u.role === filterRole;
+    const matchSearch =
+      (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.nomor_induk || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const roleName = (u as any).roles?.name || '';
+    const matchRole = filterRole === 'all' || roleName === filterRole;
     return matchSearch && matchRole;
   });
 
   const stats = {
     total: users.length,
-    admin: users.filter((u) => u.role === 'admin').length,
-    editor: users.filter((u) => u.role === 'editor').length,
-    viewer: users.filter((u) => u.role === 'viewer').length,
+    admin: users.filter((u) => (u as any).roles?.name === 'admin').length,
+    editor: users.filter((u) => (u as any).roles?.name === 'editor').length,
+    viewer: users.filter((u) => (u as any).roles?.name === 'viewer').length,
+    docs: documents.length,
+    published: documents.filter((d) => d.status === 'published').length,
+    draft: documents.filter((d) => d.status === 'draft').length,
   };
 
+
   return (
-    <Layout title={isEn ? 'Admin Dashboard' : 'Dashboard Admin'}>
-      <div className="kms-dashboard">
+    <div className="kms-dashboard">
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.6rem', marginBottom: '0.25rem' }}>
-            {isEn ? '⚙️ Admin Dashboard' : '⚙️ Dashboard Admin'}
+            ⚙️ {isEn ? 'Admin Dashboard' : 'Dashboard Admin'}
           </h1>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
-            {isEn ? 'Manage users, roles, and content access.' : 'Kelola pengguna, peran, dan akses konten.'}
+            {isEn ? 'Manage users, roles, documents, and activity.' : 'Kelola pengguna, peran, dokumen, dan aktivitas.'}
           </p>
         </div>
 
@@ -67,102 +145,306 @@ export default function AdminPage() {
             { icon: '👑', label: 'Admin', value: stats.admin, color: '#92400e' },
             { icon: '✏️', label: 'Editor', value: stats.editor, color: '#1e40af' },
             { icon: '👁️', label: 'Viewer', value: stats.viewer, color: '#166534' },
+            { icon: '📄', label: isEn ? 'Documents' : 'Dokumen', value: stats.docs, color: 'var(--kms-primary)' },
+            { icon: '✅', label: isEn ? 'Published' : 'Terbit', value: stats.published, color: '#059669' },
+            { icon: '📝', label: 'Draft', value: stats.draft, color: '#d97706' },
           ].map((s) => (
             <div key={s.label} className="kms-stat-card">
               <div className="kms-stat-card__icon">{s.icon}</div>
               <div className="kms-stat-card__label">{s.label}</div>
-              <div className="kms-stat-card__value" style={{ color: s.color }}>{s.value}</div>
+              <div className="kms-stat-card__value" style={{ color: s.color }}>
+                {loadingData ? '…' : s.value}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* User Management */}
-        <div className="kms-card">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, flex: 1 }}>{isEn ? 'User Management' : 'Manajemen Pengguna'}</h3>
-            <button className="kms-btn kms-btn--accent" style={{ width: 'auto', padding: '8px 16px', fontSize: '0.83rem' }}>
-              + {isEn ? 'Add User' : 'Tambah Pengguna'}
-            </button>
-          </div>
-
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder={isEn ? 'Search user...' : 'Cari pengguna...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: 1, minWidth: '200px', padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
-            />
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              style={{ padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--ifm-toc-border-color)', paddingBottom: 0 }}>
+          {[
+            { key: 'users', label: isEn ? '👥 Users' : '👥 Pengguna' },
+            { key: 'documents', label: isEn ? '📄 Documents' : '📄 Dokumen' },
+            { key: 'logs', label: isEn ? '📋 Activity Log' : '📋 Log Aktivitas' },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === tab.key ? '2px solid var(--kms-accent)' : '2px solid transparent',
+                padding: '0.6rem 1rem',
+                fontSize: '0.88rem',
+                fontWeight: activeTab === tab.key ? 700 : 500,
+                color: activeTab === tab.key ? 'var(--kms-accent)' : '#6b7280',
+                cursor: 'pointer',
+                marginBottom: '-2px',
+                fontFamily: 'inherit',
+                transition: 'all 0.15s',
+              }}
             >
-              <option value="all">{isEn ? 'All Roles' : 'Semua Peran'}</option>
-              <option value="admin">Admin</option>
-              <option value="editor">Editor</option>
-              <option value="viewer">Viewer</option>
-            </select>
-          </div>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--ifm-toc-border-color)' }}>
-                  {[isEn ? 'Name' : 'Nama', 'Email', isEn ? 'Role' : 'Peran', 'Department', isEn ? 'Last Login' : 'Login Terakhir', ''].map((h) => (
-                    <th key={h} style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.78rem', textTransform: 'uppercase' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((user) => (
-                  <tr key={user.uid} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ifm-background-surface-color)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{user.displayName}</div>
-                    </td>
-                    <td style={{ padding: '0.75rem', color: '#6b7280' }}>{user.email}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span className={`kms-badge ${roleColors[user.role]}`}>
-                        {roleIcons[user.role]} {user.role}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span className="kms-tag kms-tag--dept" style={{ cursor: 'default', fontSize: '0.75rem' }}>
-                        {user.department === 'all' ? (isEn ? 'All' : 'Semua') : user.department.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>{user.lastLogin ?? '-'}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <button style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--kms-primary)', fontFamily: 'inherit' }}>
-                        {isEn ? 'Edit' : 'Ubah'}
-                      </button>
-                    </td>
+        {/* ── TAB: Users ── */}
+        {activeTab === 'users' && (
+          <div className="kms-card">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, flex: 1 }}>{isEn ? 'User Management' : 'Manajemen Pengguna'}</h3>
+            </div>
+
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder={isEn ? 'Search by name or nomor induk...' : 'Cari nama atau nomor induk...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ flex: 1, minWidth: '200px', padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
+              />
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                style={{ padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
+              >
+                <option value="all">{isEn ? 'All Roles' : 'Semua Peran'}</option>
+                {roles.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
+              </select>
+            </div>
+
+            {/* Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--ifm-toc-border-color)' }}>
+                    {[isEn ? 'Name' : 'Nama', isEn ? 'ID' : 'Nomor Induk', isEn ? 'Role' : 'Peran', isEn ? 'Department' : 'Departemen', isEn ? 'Joined' : 'Bergabung', ''].map((h) => (
+                      <th key={h} style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {filtered.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem', margin: 0 }}>
-                {isEn ? 'No users found.' : 'Tidak ada pengguna ditemukan.'}
+                </thead>
+                <tbody>
+                  {loadingData ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Memuat data...</td></tr>
+                  ) : filtered.map((user) => {
+                    const roleName = (user as any).roles?.name || 'viewer';
+                    const isEditing = editingUser === user.id;
+                    return (
+                      <tr key={user.id} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ifm-background-surface-color)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: 600, color: '#111827' }}>{user.name || '—'}</div>
+                        </td>
+                        <td style={{ padding: '0.75rem', color: '#6b7280', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                          {user.nomor_induk || '—'}
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          {isEditing ? (
+                            <select
+                              value={editRole}
+                              onChange={(e) => setEditRole(e.target.value)}
+                              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.82rem', fontFamily: 'inherit' }}
+                            >
+                              {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                            </select>
+                          ) : (
+                            <span className={`kms-badge ${roleColors[roleName] || 'kms-badge--viewer'}`}>
+                              {roleIcons[roleName] || '👁️'} {roleName}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          {isEditing ? (
+                            <select
+                              value={editDept}
+                              onChange={(e) => setEditDept(e.target.value)}
+                              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.82rem', fontFamily: 'inherit' }}
+                            >
+                              {departments.map((d) => <option key={d} value={d}>{deptLabel(d)}</option>)}
+                            </select>
+                          ) : (
+                            <span className="kms-tag kms-tag--dept" style={{ cursor: 'default', fontSize: '0.75rem' }}>
+                              {deptLabel(user.department)}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                          {user.created_at ? timeAgo(user.created_at) : '—'}
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          {isEditing ? (
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                onClick={() => saveUser(user.id)}
+                                disabled={saving}
+                                style={{ background: 'var(--kms-accent)', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                              >
+                                {saving ? '…' : '✓ Simpan'}
+                              </button>
+                              <button
+                                onClick={() => setEditingUser(null)}
+                                style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startEdit(user)}
+                              style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--kms-primary)', fontFamily: 'inherit' }}
+                            >
+                              {isEn ? 'Edit' : 'Ubah'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!loadingData && filtered.length === 0 && (
+                <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem', margin: 0 }}>
+                  {isEn ? 'No users found.' : 'Tidak ada pengguna ditemukan.'}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: Documents ── */}
+        {activeTab === 'documents' && (
+          <div className="kms-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0 }}>{isEn ? 'Document Management' : 'Manajemen Dokumen'}</h3>
+              <a href="/documents/new" className="kms-btn kms-btn--accent" style={{ width: 'auto', padding: '8px 16px', fontSize: '0.83rem' }}>
+                + {isEn ? 'New Document' : 'Dokumen Baru'}
+              </a>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--ifm-toc-border-color)' }}>
+                    {[isEn ? 'Title' : 'Judul', 'Slug', 'Status', isEn ? 'Author' : 'Penulis', isEn ? 'Updated' : 'Diperbarui', ''].map((h) => (
+                      <th key={h} style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.78rem', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingData ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Memuat dokumen...</td></tr>
+                  ) : documents.map((doc) => (
+                    <tr key={doc.id} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ifm-background-surface-color)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: '#111827' }}>
+                        <a href={`/document?slug=${doc.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                          {doc.title}
+                        </a>
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#6b7280', fontFamily: 'monospace', fontSize: '0.78rem' }}>{doc.slug}</td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span style={{
+                          display: 'inline-block', padding: '2px 8px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600,
+                          background: doc.status === 'published' ? '#d1fae5' : doc.status === 'draft' ? '#fef3c7' : '#fee2e2',
+                          color: doc.status === 'published' ? '#065f46' : doc.status === 'draft' ? '#92400e' : '#991b1b',
+                        }}>
+                          {doc.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#6b7280', fontSize: '0.82rem' }}>
+                        {(doc as any).profiles?.name || '—'}
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                        {doc.updated_at ? timeAgo(doc.updated_at) : '—'}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <a
+                          href={`/document?slug=${doc.slug}`}
+                          style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--kms-primary)', fontFamily: 'inherit', textDecoration: 'none' }}
+                        >
+                          {isEn ? 'View' : 'Lihat'}
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!loadingData && documents.length === 0 && (
+                <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem', margin: 0 }}>
+                  {isEn ? 'No documents yet.' : 'Belum ada dokumen.'}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: Activity Logs ── */}
+        {activeTab === 'logs' && (
+          <div className="kms-card">
+            <h3 style={{ marginBottom: '1.25rem' }}>📋 {isEn ? 'Activity Log' : 'Log Aktivitas'}</h3>
+            {loadingData ? (
+              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>Memuat log...</p>
+            ) : activityLogs.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>
+                {isEn ? 'No activity logs yet.' : 'Belum ada log aktivitas.'}
               </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {activityLogs.map((log) => (
+                  <div key={log.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.65rem 0', borderBottom: '1px solid var(--ifm-toc-border-color)', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '1.1rem', minWidth: '24px', marginTop: '1px' }}>
+                      {log.action?.startsWith('admin') ? '⚙️' : log.action?.includes('login') ? '🔑' : log.action?.includes('create') ? '➕' : log.action?.includes('edit') ? '✏️' : '📋'}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+                        <strong>{(log as any).profiles?.name || 'Unknown'}</strong>
+                        {' — '}
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280' }}>{log.action || '—'}</span>
+                        {(log as any).documents?.title && (
+                          <span>
+                            {' → '}
+                            <a href={`/document?slug=${(log as any).documents.slug}`} style={{ color: 'var(--kms-accent)', textDecoration: 'none', fontSize: '0.82rem' }}>
+                              {(log as any).documents.title}
+                            </a>
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '2px' }}>
+                        {log.created_at ? timeAgo(log.created_at) : '—'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        </div>
+        )}
 
-        {/* Audit Log Notice */}
+        {/* Supabase notice */}
         <div className="kms-notice kms-notice--info" style={{ marginTop: '1.5rem' }}>
-          📋 {isEn
-            ? 'Full audit logs are stored in Firestore. All admin actions are recorded for security compliance.'
-            : 'Log audit lengkap tersimpan di Firestore. Semua tindakan admin direkam untuk kepatuhan keamanan.'}
+          🗄️ {isEn
+            ? 'All data is fetched in real-time from Supabase PostgreSQL. All admin actions are recorded in activity_logs.'
+            : 'Semua data diambil secara real-time dari Supabase PostgreSQL. Semua tindakan admin dicatat di activity_logs.'}
         </div>
-      </div>
+    </div>
+  );
+}
+
+export default function AdminPage() {
+  const { i18n } = useDocusaurusContext();
+  const isEn = i18n.currentLocale === 'en';
+
+  return (
+    <Layout title={isEn ? 'Admin Dashboard' : 'Dashboard Admin'}>
+      <AuthGuard requiredRole="admin">
+        <AdminDashboard />
+      </AuthGuard>
     </Layout>
   );
 }
