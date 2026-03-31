@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@theme/Layout';
 import { useLocation } from '@docusaurus/router';
 import { supabase, timeAgo } from '../lib/supabase';
@@ -85,7 +85,7 @@ function CommentSection({ documentId }: { documentId: string }) {
   return (
     <div className="kms-card kms-card--static" style={{ marginTop: '2rem' }}>
       <h4 style={{ margin: '0 0 1.25rem', color: 'var(--kms-primary)', fontSize: '0.95rem', fontWeight: 700 }}>
-        💬 Komentar ({comments.length})
+        Komentar ({comments.length})
       </h4>
 
       {currentUser ? (
@@ -234,7 +234,7 @@ function FeedbackSection({ documentId }: { documentId: string }) {
           fontWeight: userFeedback === 'helpful' ? 700 : 500,
         }}
       >
-        👍 Ya ({counts.helpful})
+        Ya ({counts.helpful})
       </button>
       <button
         onClick={() => submitFeedback('not_helpful')}
@@ -246,8 +246,43 @@ function FeedbackSection({ documentId }: { documentId: string }) {
           fontWeight: userFeedback === 'not_helpful' ? 700 : 500,
         }}
       >
-        👎 Tidak ({counts.notHelpful})
+        Tidak ({counts.notHelpful})
       </button>
+    </div>
+  );
+}
+
+// ── Copy Protection Wrapper ────────────────────────────────
+function CopyProtectedWrapper({ children }: { children: React.ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', '');
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    el.addEventListener('copy', handleCopy);
+    el.addEventListener('contextmenu', handleContextMenu);
+
+    return () => {
+      el.removeEventListener('copy', handleCopy);
+      el.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, []);
+
+  return (
+    <div ref={containerRef} className="no-copy">
+      {children}
     </div>
   );
 }
@@ -310,7 +345,7 @@ export default function DocumentViewPage() {
     return (
       <Layout title="Dokumen Tidak Ditemukan">
         <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+          <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#9ca3af' }}>--</div>
           <h2 style={{ color: '#374151' }}>Dokumen Tidak Ditemukan</h2>
           <p style={{ color: '#6b7280' }}>Slug "{slug}" tidak ditemukan di database.</p>
           <a href="/documents" className="kms-btn kms-btn--ghost" style={{ width: 'auto', padding: '10px 24px', marginTop: '1rem' }}>
@@ -323,6 +358,7 @@ export default function DocumentViewPage() {
 
   return (
     <Layout title={document.title} description={`${document.title} — STex KMS`}>
+      <CopyProtectedWrapper>
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '2rem 2rem 4rem' }}>
         {/* Breadcrumb */}
         <nav style={{ fontSize: '0.82rem', color: '#9ca3af', marginBottom: '1.5rem' }}>
@@ -341,7 +377,7 @@ export default function DocumentViewPage() {
               background: document.status === 'published' ? '#d1fae5' : document.status === 'draft' ? '#fef3c7' : '#dbeafe',
               color: document.status === 'published' ? '#065f46' : document.status === 'draft' ? '#92400e' : '#1e40af',
             }}>
-              {document.status === 'published' ? '✅ Terbit' : document.status === 'draft' ? '📝 Draft' : '🔍 Review'}
+              {document.status === 'published' ? 'Terbit' : document.status === 'draft' ? 'Draft' : 'Review'}
             </span>
             {latestVersion && (
               <span style={{ fontSize: '0.75rem', color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: '20px' }}>
@@ -360,9 +396,9 @@ export default function DocumentViewPage() {
           </h1>
 
           <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.82rem', color: '#6b7280', flexWrap: 'wrap' }}>
-            <span>✍️ {(document as any).profiles?.name || 'Unknown'}</span>
-            <span>📅 Dibuat: {document.created_at ? new Date(document.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span>
-            <span>🔄 Diperbarui: {document.updated_at ? timeAgo(document.updated_at) : '—'}</span>
+            <span>{(document as any).profiles?.name || 'Unknown'}</span>
+            <span>Dibuat: {document.created_at ? new Date(document.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span>
+            <span>Diperbarui: {document.updated_at ? timeAgo(document.updated_at) : '—'}</span>
           </div>
 
           {isEditor && (
@@ -371,7 +407,7 @@ export default function DocumentViewPage() {
                 href={`/documents/edit?id=${document.id}`}
                 style={{ fontSize: '0.82rem', color: 'var(--kms-accent)', textDecoration: 'none', fontWeight: 600 }}
               >
-                ✏️ Edit Dokumen
+                Edit Dokumen
               </a>
             </div>
           )}
@@ -383,11 +419,11 @@ export default function DocumentViewPage() {
             <RenderContent content={latestVersion.content} />
           ) : (
             <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📄</div>
+              <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#9ca3af' }}>--</div>
               <p>Konten belum tersedia untuk dokumen ini.</p>
               {isEditor && (
                 <a href={`/documents/edit?id=${document.id}`} className="kms-btn kms-btn--accent" style={{ width: 'auto', padding: '8px 20px', display: 'inline-block', textDecoration: 'none', marginTop: '0.5rem' }}>
-                  ✏️ Tambah Konten
+                  Tambah Konten
                 </a>
               )}
             </div>
@@ -402,6 +438,7 @@ export default function DocumentViewPage() {
         {/* Comments */}
         <CommentSection documentId={document.id} />
       </div>
+      </CopyProtectedWrapper>
     </Layout>
   );
 }

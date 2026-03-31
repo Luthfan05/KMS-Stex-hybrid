@@ -50,7 +50,7 @@ export default function LoginPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1rem', fontSize: '1.75rem',
             }}>
-              📚
+              KMS
             </div>
             <h1>STex KMS</h1>
             <p>{isEn ? 'Knowledge Management System' : 'Sistem Manajemen Pengetahuan'}</p>
@@ -60,7 +60,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} noValidate>
             {error && (
               <div className="kms-notice kms-notice--lock" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-                ⚠️ {error}
+                {error}
               </div>
             )}
 
@@ -134,7 +134,7 @@ export default function LoginPage() {
 
           {/* Security note */}
           <div className="kms-notice kms-notice--info" style={{ marginTop: '1rem', fontSize: '0.78rem' }}>
-            🔒 {isEn
+            {isEn
               ? 'This system is restricted to authorized company personnel only.'
               : 'Sistem ini hanya untuk karyawan perusahaan yang berwenang.'}
           </div>

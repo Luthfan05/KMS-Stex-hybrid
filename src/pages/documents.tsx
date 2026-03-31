@@ -7,19 +7,21 @@ import type { KMSDocument } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const DEPT_OPTIONS = [
-  { value: 'all', label: 'Semua Departemen', icon: '🏢' },
-  { value: 'hrd', label: 'HRD', icon: '👥' },
-  { value: 'finance', label: 'Finance', icon: '💰' },
-  { value: 'operasional', label: 'Operasional', icon: '⚙️' },
-  { value: 'it', label: 'IT', icon: '💻' },
-  { value: 'legal', label: 'Legal', icon: '⚖️' },
+  { value: 'all', label: 'Semua Departemen' },
+  { value: 'hrd', label: 'HRD' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'produksi', label: 'Produksi' },
+  { value: 'pertenunan', label: 'Pertenunan' },
+  { value: 'persiapan', label: 'Persiapan' },
+  { value: 'pergudangan', label: 'Pergudangan' },
+  { value: 'marketing', label: 'Marketing' },
 ];
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Semua Status' },
-  { value: 'published', label: '✅ Terbit' },
-  { value: 'draft', label: '📝 Draft' },
-  { value: 'review', label: '🔍 Review' },
+  { value: 'published', label: 'Terbit' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'review', label: 'Review' },
 ];
 
 function useQuery() {
@@ -70,9 +72,9 @@ export default function DocumentsPage() {
 
   const statusBadge = (status: string) => {
     const map: Record<string, { bg: string; color: string; label: string }> = {
-      published: { bg: '#d1fae5', color: '#065f46', label: '✅ Terbit' },
-      draft:     { bg: '#fef3c7', color: '#92400e', label: '📝 Draft' },
-      review:    { bg: '#dbeafe', color: '#1e40af', label: '🔍 Review' },
+      published: { bg: '#d1fae5', color: '#065f46', label: 'Terbit' },
+      draft:     { bg: '#fef3c7', color: '#92400e', label: 'Draft' },
+      review:    { bg: '#dbeafe', color: '#1e40af', label: 'Review' },
     };
     const s = map[status] || { bg: '#f3f4f6', color: '#6b7280', label: status };
     return (
@@ -88,7 +90,7 @@ export default function DocumentsPage() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: '1.6rem', marginBottom: '0.2rem' }}>📚 Daftar Dokumen</h1>
+            <h1 style={{ fontSize: '1.6rem', marginBottom: '0.2rem' }}>Daftar Dokumen</h1>
             <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
               Semua dokumen perusahaan yang tersedia
             </p>
@@ -104,7 +106,7 @@ export default function DocumentsPage() {
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="🔍 Cari judul atau slug..."
+            placeholder="Cari judul atau slug..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1, minWidth: '220px', padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '0.88rem', outline: 'none', fontFamily: 'inherit' }}
@@ -114,7 +116,7 @@ export default function DocumentsPage() {
             onChange={(e) => { setDeptFilter(e.target.value); setPage(0); }}
             style={{ padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '0.88rem', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
           >
-            {DEPT_OPTIONS.map((d) => <option key={d.value} value={d.value}>{d.icon} {d.label}</option>)}
+            {DEPT_OPTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
           </select>
           <select
             value={statusFilter}
@@ -140,7 +142,7 @@ export default function DocumentsPage() {
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
               }}
             >
-              {d.icon} {d.label}
+              {d.label}
             </button>
           ))}
         </div>
@@ -152,7 +154,7 @@ export default function DocumentsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📭</div>
+            <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#9ca3af' }}>--</div>
             <h3 style={{ color: '#6b7280' }}>Tidak ada dokumen ditemukan</h3>
             <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>Coba ubah filter atau kata kunci pencarian.</p>
           </div>
@@ -187,7 +189,7 @@ export default function DocumentsPage() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                       <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
-                        ✍️ {(doc as any).profiles?.name || 'Unknown'}
+                        {(doc as any).profiles?.name || 'Unknown'}
                       </span>
                       <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                         {doc.updated_at ? timeAgo(doc.updated_at) : ''}

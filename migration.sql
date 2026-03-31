@@ -181,6 +181,13 @@ ALTER TABLE public.comment_replies   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs     ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ── Profiles ──────────────────────────────────────────────
 DROP POLICY IF EXISTS "Profiles are viewable by authenticated users" ON public.profiles;
 CREATE POLICY "Profiles are viewable by authenticated users"

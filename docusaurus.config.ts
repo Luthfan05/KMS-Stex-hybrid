@@ -73,82 +73,17 @@ const config: Config = {
       style: 'primary',
       hideOnScroll: false,
       items: [
-        {
-          to: '/documents',
-          label: '📚 Dokumen',
-          position: 'left',
-        },
-        {
-          to: '/documents?dept=hrd',
-          label: 'HRD',
-          position: 'left',
-        },
-        {
-          to: '/documents?dept=finance',
-          label: 'Finance',
-          position: 'left',
-        },
-        {
-          to: '/documents?dept=operasional',
-          label: 'Operasional',
-          position: 'left',
-        },
-        {
-          to: '/documents?dept=it',
-          label: 'IT',
-          position: 'left',
-        },
-        {
-          to: '/documents?dept=legal',
-          label: 'Legal',
-          position: 'left',
-        },
-        {
-          type: 'localeDropdown',
-          position: 'right',
-        },
-        {
-          to: '/admin',
-          label: '⚙️',
-          position: 'right',
-          className: 'navbar-admin-btn',
-        },
-        {
-          to: '/login',
-          label: 'Masuk',
-          position: 'right',
-          className: 'navbar-login-btn',
-        },
+        { to: '/dictionary', label: 'Dictionary', position: 'left' },
+        { to: '/faq', label: 'FAQ', position: 'left' },
+        { to: '/about', label: 'Tentang KMS', position: 'left' },
+        { type: 'localeDropdown', position: 'right' },
+        { to: '/admin', label: '⚙️', position: 'right', className: 'navbar-admin-btn' },
+        { to: '/login', label: 'Masuk', position: 'right', className: 'navbar-login-btn' },
       ],
     },
     footer: {
       style: 'light',
-      links: [
-        {
-          title: 'Departemen',
-          items: [
-            { label: 'HRD', to: '/documents?dept=hrd' },
-            { label: 'Finance', to: '/documents?dept=finance' },
-            { label: 'Operasional', to: '/documents?dept=operasional' },
-            { label: 'IT', to: '/documents?dept=it' },
-            { label: 'Legal', to: '/documents?dept=legal' },
-          ],
-        },
-        {
-          title: 'Akses',
-          items: [
-            { label: 'Masuk / Login', to: '/login' },
-            { label: 'Dashboard Admin', to: '/admin' },
-            { label: 'Semua Dokumen', to: '/documents' },
-          ],
-        },
-        {
-          title: 'Sistem',
-          items: [
-            { label: 'Tentang KMS', to: '/about' },
-          ],
-        },
-      ],
+      links: [],
       copyright: `© ${new Date().getFullYear()} STex. Knowledge Management System — Powered by Supabase.`,
     },
     prism: {

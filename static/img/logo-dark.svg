@@ -7,6 +7,6 @@
   </defs>
   <rect width="200" height="200" rx="40" fill="#1a1e3a"/>
   <text x="100" y="92" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="52" fill="url(#grad)">KMS</text>
-  <text x="100" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="600" font-size="22" fill="#9ca3af">STex</text>
+  <text x="100" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="600" font-size="22" fill="#9ca3af">PT. SUKUNTEX</text>
   <rect x="40" y="145" width="120" height="3" rx="1.5" fill="url(#grad)" opacity="0.6"/>
 </svg>

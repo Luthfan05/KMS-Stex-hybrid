@@ -7,11 +7,13 @@ import type { ActivityLog } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const DEPT_META = [
-  { id: 'hrd',        icon: '👥', name: 'HRD',         nameEn: 'Human Resources',      desc: 'Rekrutmen, kebijakan SDM, prosedur cuti, dan penilaian kinerja karyawan.', descEn: 'Recruitment, HR policies, leave procedures, and employee performance.' },
-  { id: 'finance',    icon: '💰', name: 'Finance',      nameEn: 'Finance & Accounting',  desc: 'Prosedur keuangan, laporan bulanan, anggaran, dan reimbursement.', descEn: 'Financial procedures, monthly reports, budgets, and reimbursements.' },
-  { id: 'operasional',icon: '⚙️', name: 'Operasional',  nameEn: 'Operations',            desc: 'SOP lapangan, keselamatan kerja, pemeliharaan alat, dan pelaporan insiden.', descEn: 'Field SOPs, work safety, tool maintenance, and incident reporting.' },
-  { id: 'it',         icon: '💻', name: 'IT',           nameEn: 'Information Technology',desc: 'Panduan teknis, keamanan data, infrastruktur, dan troubleshooting.', descEn: 'Technical guides, data security, infrastructure, and troubleshooting.' },
-  { id: 'legal',      icon: '⚖️', name: 'Legal',        nameEn: 'Legal & Compliance',    desc: 'Regulasi perusahaan, kontrak, kepatuhan, dan privasi data.', descEn: 'Company regulations, contracts, compliance, and data privacy.' },
+  { id: 'hrd',         name: 'HRD',          nameEn: 'Human Resources',      desc: 'Rekrutmen, kebijakan SDM, prosedur cuti, dan penilaian kinerja karyawan.', descEn: 'Recruitment, HR policies, leave procedures, and employee performance.' },
+  { id: 'finance',     name: 'Finance',       nameEn: 'Finance & Accounting',  desc: 'Prosedur keuangan, laporan bulanan, anggaran, dan reimbursement.', descEn: 'Financial procedures, monthly reports, budgets, and reimbursements.' },
+  { id: 'produksi',    name: 'Produksi',      nameEn: 'Production',            desc: 'Proses produksi, kontrol kualitas, dan standar operasional pabrik.', descEn: 'Production processes, quality control, and factory operational standards.' },
+  { id: 'pertenunan',  name: 'Pertenunan',    nameEn: 'Weaving',               desc: 'Proses tenun, pemeliharaan mesin tenun, dan standar kualitas kain.', descEn: 'Weaving processes, loom maintenance, and fabric quality standards.' },
+  { id: 'persiapan',   name: 'Persiapan',     nameEn: 'Preparation',           desc: 'Persiapan bahan baku, pencelupan, dan proses awal produksi.', descEn: 'Raw material preparation, dyeing, and pre-production processes.' },
+  { id: 'pergudangan', name: 'Pergudangan',   nameEn: 'Warehousing',           desc: 'Manajemen gudang, inventaris, penyimpanan, dan distribusi barang.', descEn: 'Warehouse management, inventory, storage, and goods distribution.' },
+  { id: 'marketing',   name: 'Marketing',     nameEn: 'Marketing & Sales',     desc: 'Strategi pemasaran, penjualan, hubungan pelanggan, dan promosi.', descEn: 'Marketing strategy, sales, customer relations, and promotions.' },
 ];
 
 function HeroSection({ lang, docCount }: { lang: string; docCount: number }) {
@@ -42,7 +44,7 @@ function HeroSection({ lang, docCount }: { lang: string; docCount: number }) {
           readOnly
           style={{ cursor: 'pointer' }}
         />
-        <span className="kms-hero__search-icon">🔍</span>
+        <span className="kms-hero__search-icon">&#128269;</span>
       </div>
     </section>
   );
@@ -67,7 +69,7 @@ function DeptGrid({ lang, deptCounts }: { lang: string; deptCounts: Record<strin
           const count = deptCounts[dept.id] ?? 0;
           return (
             <Link key={dept.id} to={`/documents?dept=${dept.id}`} className="kms-dept-card">
-              <div className="kms-dept-card__icon">{dept.icon}</div>
+              <div className="kms-dept-card__icon" style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--kms-accent)' }}>{dept.name.charAt(0)}</div>
               <div>
                 <p className="kms-dept-card__name">{dept.name}</p>
                 <p style={{ fontSize: '0.75rem', color: 'var(--kms-accent)', fontWeight: 600, margin: '0 0 0.35rem' }}>
@@ -96,13 +98,13 @@ function RecentActivity({ lang, logs }: { lang: string; logs: ActivityLog[] }) {
     <section style={{ background: 'var(--ifm-background-surface-color)', padding: '2.5rem 2rem', borderTop: '1px solid var(--ifm-toc-border-color)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         <h3 style={{ fontSize: '1rem', color: '#6b7280', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          🕐 {isEn ? 'Recent Activity' : 'Aktivitas Terbaru'}
+          {isEn ? 'Recent Activity' : 'Aktivitas Terbaru'}
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {logs.slice(0, 5).map((log) => (
             <div key={log.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--ifm-toc-border-color)' }}>
-              <span style={{ fontSize: '1rem', minWidth: '20px' }}>
-                {log.action?.includes('create') ? '➕' : log.action?.includes('edit') ? '✏️' : log.action?.includes('login') ? '🔑' : '📋'}
+              <span style={{ fontSize: '0.82rem', minWidth: '20px', color: '#6b7280', fontFamily: 'monospace' }}>
+                {log.action?.includes('create') ? 'NEW' : log.action?.includes('edit') ? 'EDT' : log.action?.includes('login') ? 'LOG' : 'ACT'}
               </span>
               <div style={{ flex: 1 }}>
                 <span style={{ fontSize: '0.83rem', color: '#374151' }}>
@@ -138,16 +140,16 @@ function RecentActivity({ lang, logs }: { lang: string; logs: ActivityLog[] }) {
 function QuickLinks({ lang }: { lang: string }) {
   const isEn = lang === 'en';
   const links = [
-    { icon: '📄', label: isEn ? 'All Documents' : 'Semua Dokumen', path: '/documents' },
-    { icon: '🔐', label: isEn ? 'Login' : 'Masuk', path: '/login' },
-    { icon: '⚙️', label: isEn ? 'Admin Dashboard' : 'Dashboard Admin', path: '/admin' },
-    { icon: '📖', label: isEn ? 'User Guide' : 'Panduan Penggunaan', path: '/documents?dept=all' },
+    { label: isEn ? 'All Documents' : 'Semua Dokumen', path: '/documents' },
+    { label: isEn ? 'Login' : 'Masuk', path: '/login' },
+    { label: isEn ? 'Admin Dashboard' : 'Dashboard Admin', path: '/admin' },
+    { label: isEn ? 'User Guide' : 'Panduan Penggunaan', path: '/documents?dept=all' },
   ];
   return (
     <section style={{ padding: '2rem 2rem 3rem', borderTop: '1px solid var(--ifm-toc-border-color)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         <h3 style={{ fontSize: '1rem', color: '#6b7280', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          ⚡ {isEn ? 'Quick Access' : 'Akses Cepat'}
+          {isEn ? 'Quick Access' : 'Akses Cepat'}
         </h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
           {links.map((link) => (
@@ -169,7 +171,7 @@ function QuickLinks({ lang }: { lang: string }) {
                 (e.currentTarget as HTMLElement).style.color = 'var(--kms-primary)';
               }}
             >
-              <span>{link.icon}</span> {link.label}
+              {link.label}
             </Link>
           ))}
         </div>

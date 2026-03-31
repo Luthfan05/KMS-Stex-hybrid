@@ -7,12 +7,14 @@ import { useAuth } from '../../context/AuthContext';
 import AuthGuard from '../../components/AuthGuard';
 
 const DEPT_OPTIONS = [
-  { value: 'all', label: '🏢 Semua Departemen' },
-  { value: 'hrd', label: '👥 HRD' },
-  { value: 'finance', label: '💰 Finance' },
-  { value: 'operasional', label: '⚙️ Operasional' },
-  { value: 'it', label: '💻 IT' },
-  { value: 'legal', label: '⚖️ Legal' },
+  { value: 'all', label: 'Semua Departemen' },
+  { value: 'hrd', label: 'HRD' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'produksi', label: 'Produksi' },
+  { value: 'pertenunan', label: 'Pertenunan' },
+  { value: 'persiapan', label: 'Persiapan' },
+  { value: 'pergudangan', label: 'Pergudangan' },
+  { value: 'marketing', label: 'Marketing' },
 ];
 
 function useQuery() {
@@ -171,7 +173,7 @@ function EditDocumentForm() {
   if (notFound || !docData) {
     return (
       <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+        <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#9ca3af' }}>--</div>
         <h2 style={{ color: '#374151' }}>Dokumen Tidak Ditemukan</h2>
         <p style={{ color: '#6b7280' }}>ID dokumen tidak valid atau dokumen sudah dihapus.</p>
         <a href="/documents" className="kms-btn kms-btn--ghost" style={{ width: 'auto', padding: '10px 24px' }}>
@@ -184,7 +186,7 @@ function EditDocumentForm() {
   if (success) {
     return (
       <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+        <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--kms-success)' }}>OK</div>
         <h2 style={{ color: 'var(--kms-success)' }}>Perubahan Berhasil Disimpan!</h2>
         <p style={{ color: '#6b7280' }}>Versi {currentVersion} telah dibuat. Mengalihkan...</p>
       </div>
@@ -195,7 +197,7 @@ function EditDocumentForm() {
     <div className="kms-editor">
       <div className="kms-editor__header">
         <div>
-          <h1 style={{ fontSize: '1.6rem', marginBottom: '0.2rem' }}>✏️ Edit Dokumen</h1>
+          <h1 style={{ fontSize: '1.6rem', marginBottom: '0.2rem' }}>Edit Dokumen</h1>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
             Mengedit: <strong>{docData.title}</strong>
             <span style={{ marginLeft: '8px', fontSize: '0.78rem', color: '#9ca3af' }}>
@@ -210,13 +212,13 @@ function EditDocumentForm() {
 
       {error && (
         <div className="kms-notice kms-notice--danger" style={{ marginBottom: '1.5rem' }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div className="kms-card kms-card--static" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--kms-primary)' }}>📋 Detail Dokumen</h3>
+          <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--kms-primary)' }}>Detail Dokumen</h3>
 
           <div className="kms-form-group">
             <label htmlFor="doc-title">Judul Dokumen *</label>
@@ -244,9 +246,9 @@ function EditDocumentForm() {
             <div className="kms-form-group">
               <label htmlFor="doc-status">Status</label>
               <select id="doc-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="draft">📝 Draft</option>
-                <option value="review">🔍 Review</option>
-                <option value="published">✅ Terbit</option>
+                <option value="draft">Draft</option>
+                <option value="review">Review</option>
+                <option value="published">Terbit</option>
               </select>
             </div>
           </div>
@@ -261,7 +263,7 @@ function EditDocumentForm() {
         {/* Content Editor */}
         <div className="kms-card kms-card--static" style={{ marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <h3 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--kms-primary)' }}>📄 Konten Dokumen</h3>
+            <h3 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--kms-primary)' }}>Konten Dokumen</h3>
             <span style={{ fontSize: '0.75rem', color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '20px' }}>
               Akan menjadi v{currentVersion + 1}
             </span>
@@ -274,14 +276,14 @@ function EditDocumentForm() {
               className={`kms-editor__tab ${activeTab === 'write' ? 'kms-editor__tab--active' : ''}`}
               onClick={() => setActiveTab('write')}
             >
-              ✏️ Tulis
+              Tulis
             </button>
             <button
               type="button"
               className={`kms-editor__tab ${activeTab === 'preview' ? 'kms-editor__tab--active' : ''}`}
               onClick={() => setActiveTab('preview')}
             >
-              👁️ Preview
+              Preview
             </button>
           </div>
 
@@ -323,7 +325,7 @@ function EditDocumentForm() {
             disabled={saving || !title.trim()}
             style={{ width: 'auto', padding: '10px 28px', opacity: (saving || !title.trim()) ? 0.7 : 1 }}
           >
-            {saving ? '💾 Menyimpan...' : `💾 Simpan (v${currentVersion + 1})`}
+            {saving ? 'Menyimpan...' : `Simpan (v${currentVersion + 1})`}
           </button>
         </div>
       </form>

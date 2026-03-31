@@ -5,12 +5,14 @@ import { useAuth } from '../../context/AuthContext';
 import AuthGuard from '../../components/AuthGuard';
 
 const DEPT_OPTIONS = [
-  { value: 'all', label: '🏢 Semua Departemen' },
-  { value: 'hrd', label: '👥 HRD' },
-  { value: 'finance', label: '💰 Finance' },
-  { value: 'operasional', label: '⚙️ Operasional' },
-  { value: 'it', label: '💻 IT' },
-  { value: 'legal', label: '⚖️ Legal' },
+  { value: 'all', label: 'Semua Departemen' },
+  { value: 'hrd', label: 'HRD' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'produksi', label: 'Produksi' },
+  { value: 'pertenunan', label: 'Pertenunan' },
+  { value: 'persiapan', label: 'Persiapan' },
+  { value: 'pergudangan', label: 'Pergudangan' },
+  { value: 'marketing', label: 'Marketing' },
 ];
 
 function slugify(text: string): string {
@@ -148,7 +150,7 @@ function NewDocumentForm() {
   if (success) {
     return (
       <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+        <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--kms-success)' }}>OK</div>
         <h2 style={{ color: 'var(--kms-success)' }}>Dokumen Berhasil Dibuat!</h2>
         <p style={{ color: '#6b7280' }}>Mengalihkan ke halaman dokumen...</p>
       </div>
@@ -159,7 +161,7 @@ function NewDocumentForm() {
     <div className="kms-editor">
       <div className="kms-editor__header">
         <div>
-          <h1 style={{ fontSize: '1.6rem', marginBottom: '0.2rem' }}>📝 Dokumen Baru</h1>
+          <h1 style={{ fontSize: '1.6rem', marginBottom: '0.2rem' }}>Dokumen Baru</h1>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
             Buat dokumen baru untuk Knowledge Management System
           </p>
@@ -171,13 +173,13 @@ function NewDocumentForm() {
 
       {error && (
         <div className="kms-notice kms-notice--danger" style={{ marginBottom: '1.5rem' }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div className="kms-card kms-card--static" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--kms-primary)' }}>📋 Detail Dokumen</h3>
+          <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--kms-primary)' }}>Detail Dokumen</h3>
 
           <div className="kms-form-group">
             <label htmlFor="doc-title">Judul Dokumen *</label>
@@ -200,7 +202,7 @@ function NewDocumentForm() {
                   onClick={() => setSlugManual(!slugManual)}
                   style={{ background: 'none', border: 'none', color: 'var(--kms-accent)', fontSize: '0.75rem', cursor: 'pointer', marginLeft: '8px', fontFamily: 'inherit' }}
                 >
-                  {slugManual ? '🔗 Auto' : '✏️ Manual'}
+                  {slugManual ? 'Auto' : 'Manual'}
                 </button>
               </label>
               <input
@@ -229,16 +231,16 @@ function NewDocumentForm() {
           <div className="kms-form-group">
             <label htmlFor="doc-status">Status</label>
             <select id="doc-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="draft">📝 Draft</option>
-              <option value="review">🔍 Review</option>
-              <option value="published">✅ Terbit</option>
+              <option value="draft">Draft</option>
+              <option value="review">Review</option>
+              <option value="published">Terbit</option>
             </select>
           </div>
         </div>
 
         {/* Content Editor */}
         <div className="kms-card kms-card--static" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--kms-primary)' }}>📄 Konten Dokumen</h3>
+          <h3 style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--kms-primary)' }}>Konten Dokumen</h3>
 
           {/* Tab bar */}
           <div className="kms-editor__tab-bar">
@@ -247,14 +249,14 @@ function NewDocumentForm() {
               className={`kms-editor__tab ${activeTab === 'write' ? 'kms-editor__tab--active' : ''}`}
               onClick={() => setActiveTab('write')}
             >
-              ✏️ Tulis
+              Tulis
             </button>
             <button
               type="button"
               className={`kms-editor__tab ${activeTab === 'preview' ? 'kms-editor__tab--active' : ''}`}
               onClick={() => setActiveTab('preview')}
             >
-              👁️ Preview
+              Preview
             </button>
           </div>
 
@@ -297,7 +299,7 @@ function NewDocumentForm() {
             disabled={saving || !title.trim() || !slug.trim()}
             style={{ width: 'auto', padding: '10px 28px', opacity: (saving || !title.trim() || !slug.trim()) ? 0.7 : 1 }}
           >
-            {saving ? '💾 Menyimpan...' : '💾 Simpan Dokumen'}
+            {saving ? 'Menyimpan...' : 'Simpan Dokumen'}
           </button>
         </div>
       </form>

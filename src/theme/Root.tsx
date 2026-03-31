@@ -66,7 +66,7 @@ function updateNavbarUserMenu(
   // Logout button
   const logoutBtn = document.createElement('button');
   logoutBtn.className = 'kms-logout-btn';
-  logoutBtn.textContent = '🚪 Keluar';
+  logoutBtn.textContent = 'Keluar';
   logoutBtn.addEventListener('click', async () => {
     await logout();
     window.location.href = '/';

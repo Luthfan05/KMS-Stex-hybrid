@@ -15,7 +15,7 @@ const roleColors: Record<string, string> = {
   editor: 'kms-badge--editor',
   viewer: 'kms-badge--viewer',
 };
-const roleIcons: Record<string, string> = { admin: '👑', editor: '✏️', viewer: '👁️' };
+const roleIcons: Record<string, string> = { admin: '', editor: '', viewer: '' };
 
 const deptLabel = (d: string | null) => {
   if (!d || d === 'all') return 'Semua';
@@ -40,7 +40,7 @@ function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'users' | 'documents' | 'logs'>('users');
 
-  const departments = ['all', 'hrd', 'finance', 'operasional', 'it', 'legal'];
+  const departments = ['all', 'hrd', 'finance', 'produksi', 'pertenunan', 'persiapan', 'pergudangan', 'marketing'];
 
   useEffect(() => {
     fetchAll();
@@ -55,7 +55,7 @@ function AdminDashboard() {
   const fetchUsers = async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, roles(name)')
+      .select('*, roles(name), last_login, status')
       .order('created_at', { ascending: false });
     if (!error && data) setUsers(data as AdminProfile[]);
   };
@@ -131,7 +131,7 @@ function AdminDashboard() {
     <div className="kms-dashboard">
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.6rem', marginBottom: '0.25rem' }}>
-            ⚙️ {isEn ? 'Admin Dashboard' : 'Dashboard Admin'}
+            {isEn ? 'Admin Dashboard' : 'Dashboard Admin'}
           </h1>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
             {isEn ? 'Manage users, roles, documents, and activity.' : 'Kelola pengguna, peran, dokumen, dan aktivitas.'}
@@ -141,16 +141,16 @@ function AdminDashboard() {
         {/* Stats */}
         <div className="kms-stats-grid">
           {[
-            { icon: '👥', label: isEn ? 'Total Users' : 'Total Pengguna', value: stats.total, color: 'var(--kms-primary)' },
-            { icon: '👑', label: 'Admin', value: stats.admin, color: '#92400e' },
-            { icon: '✏️', label: 'Editor', value: stats.editor, color: '#1e40af' },
-            { icon: '👁️', label: 'Viewer', value: stats.viewer, color: '#166534' },
-            { icon: '📄', label: isEn ? 'Documents' : 'Dokumen', value: stats.docs, color: 'var(--kms-primary)' },
-            { icon: '✅', label: isEn ? 'Published' : 'Terbit', value: stats.published, color: '#059669' },
-            { icon: '📝', label: 'Draft', value: stats.draft, color: '#d97706' },
+            { label: isEn ? 'Total Users' : 'Total Pengguna', value: stats.total, color: 'var(--kms-primary)' },
+            { label: 'Admin', value: stats.admin, color: '#92400e' },
+            { label: 'Editor', value: stats.editor, color: '#1e40af' },
+            { label: 'Viewer', value: stats.viewer, color: '#166534' },
+            { label: isEn ? 'Documents' : 'Dokumen', value: stats.docs, color: 'var(--kms-primary)' },
+            { label: isEn ? 'Published' : 'Terbit', value: stats.published, color: '#059669' },
+            { label: 'Draft', value: stats.draft, color: '#d97706' },
           ].map((s) => (
             <div key={s.label} className="kms-stat-card">
-              <div className="kms-stat-card__icon">{s.icon}</div>
+
               <div className="kms-stat-card__label">{s.label}</div>
               <div className="kms-stat-card__value" style={{ color: s.color }}>
                 {loadingData ? '…' : s.value}
@@ -162,9 +162,9 @@ function AdminDashboard() {
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--ifm-toc-border-color)', paddingBottom: 0 }}>
           {[
-            { key: 'users', label: isEn ? '👥 Users' : '👥 Pengguna' },
-            { key: 'documents', label: isEn ? '📄 Documents' : '📄 Dokumen' },
-            { key: 'logs', label: isEn ? '📋 Activity Log' : '📋 Log Aktivitas' },
+            { key: 'users', label: isEn ? 'Users' : 'Pengguna' },
+            { key: 'documents', label: isEn ? 'Documents' : 'Dokumen' },
+            { key: 'logs', label: isEn ? 'Activity Log' : 'Log Aktivitas' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -219,7 +219,7 @@ function AdminDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--ifm-toc-border-color)' }}>
-                    {[isEn ? 'Name' : 'Nama', isEn ? 'ID' : 'Nomor Induk', isEn ? 'Role' : 'Peran', isEn ? 'Department' : 'Departemen', isEn ? 'Joined' : 'Bergabung', ''].map((h) => (
+                    {[isEn ? 'Name' : 'Nama', isEn ? 'ID' : 'Nomor Induk', isEn ? 'Role' : 'Peran', isEn ? 'Department' : 'Departemen', isEn ? 'Last Login' : 'Login Terakhir', 'Status', isEn ? 'Joined' : 'Bergabung', ''].map((h) => (
                       <th key={h} style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.78rem', textTransform: 'uppercase' }}>
                         {h}
                       </th>
@@ -228,7 +228,7 @@ function AdminDashboard() {
                 </thead>
                 <tbody>
                   {loadingData ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Memuat data...</td></tr>
+                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Memuat data...</td></tr>
                   ) : filtered.map((user) => {
                     const roleName = (user as any).roles?.name || 'viewer';
                     const isEditing = editingUser === user.id;
@@ -272,6 +272,18 @@ function AdminDashboard() {
                               {deptLabel(user.department)}
                             </span>
                           )}
+                        </td>
+                        <td style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                          {(user as any).last_login ? timeAgo((user as any).last_login) : '—'}
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600,
+                            background: (user as any).status === 'active' ? '#d1fae5' : '#fef3c7',
+                            color: (user as any).status === 'active' ? '#065f46' : '#92400e',
+                          }}>
+                            {(user as any).status || 'active'}
+                          </span>
                         </td>
                         <td style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
                           {user.created_at ? timeAgo(user.created_at) : '—'}
@@ -387,7 +399,7 @@ function AdminDashboard() {
         {/* ── TAB: Activity Logs ── */}
         {activeTab === 'logs' && (
           <div className="kms-card">
-            <h3 style={{ marginBottom: '1.25rem' }}>📋 {isEn ? 'Activity Log' : 'Log Aktivitas'}</h3>
+            <h3 style={{ marginBottom: '1.25rem' }}>{isEn ? 'Activity Log' : 'Log Aktivitas'}</h3>
             {loadingData ? (
               <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>Memuat log...</p>
             ) : activityLogs.length === 0 ? (
@@ -398,8 +410,8 @@ function AdminDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {activityLogs.map((log) => (
                   <div key={log.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.65rem 0', borderBottom: '1px solid var(--ifm-toc-border-color)', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '1.1rem', minWidth: '24px', marginTop: '1px' }}>
-                      {log.action?.startsWith('admin') ? '⚙️' : log.action?.includes('login') ? '🔑' : log.action?.includes('create') ? '➕' : log.action?.includes('edit') ? '✏️' : '📋'}
+                    <span style={{ fontSize: '0.82rem', minWidth: '24px', marginTop: '1px', color: '#6b7280', fontFamily: 'monospace' }}>
+                      {log.action?.startsWith('admin') ? 'ADM' : log.action?.includes('login') ? 'LOG' : log.action?.includes('create') ? 'NEW' : log.action?.includes('edit') ? 'EDT' : 'ACT'}
                     </span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '0.85rem', color: '#374151' }}>
@@ -428,7 +440,7 @@ function AdminDashboard() {
 
         {/* Supabase notice */}
         <div className="kms-notice kms-notice--info" style={{ marginTop: '1.5rem' }}>
-          🗄️ {isEn
+          {isEn
             ? 'All data is fetched in real-time from Supabase PostgreSQL. All admin actions are recorded in activity_logs.'
             : 'Semua data diambil secara real-time dari Supabase PostgreSQL. Semua tindakan admin dicatat di activity_logs.'}
         </div>
