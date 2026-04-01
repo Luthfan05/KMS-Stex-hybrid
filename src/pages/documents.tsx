@@ -6,17 +6,6 @@ import { supabase, timeAgo } from '../lib/supabase';
 import type { KMSDocument } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
-const DEPT_OPTIONS = [
-  { value: 'all', label: 'Semua Departemen' },
-  { value: 'hrd', label: 'HRD' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'produksi', label: 'Produksi' },
-  { value: 'pertenunan', label: 'Pertenunan' },
-  { value: 'persiapan', label: 'Persiapan' },
-  { value: 'pergudangan', label: 'Pergudangan' },
-  { value: 'marketing', label: 'Marketing' },
-];
-
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Semua Status' },
   { value: 'published', label: 'Terbit' },
@@ -28,11 +17,17 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
+interface DeptOption {
+  value: string;
+  label: string;
+}
+
 export default function DocumentsPage() {
   const query = useQuery();
   const { currentUser, isAdmin, isEditor } = useAuth();
 
   const [documents, setDocuments] = useState<KMSDocument[]>([]);
+  const [deptOptions, setDeptOptions] = useState<DeptOption[]>([{ value: 'all', label: 'Semua Departemen' }]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState(query.get('dept') || 'all');
@@ -41,8 +36,29 @@ export default function DocumentsPage() {
   const PAGE_SIZE = 12;
 
   useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
     fetchDocuments();
   }, [deptFilter, statusFilter, page]);
+
+  const fetchDepartments = async () => {
+    const { data, error } = await supabase
+      .from('departments')
+      .select('code, name')
+      .order('name', { ascending: true });
+
+    if (data && !error) {
+      const opts: DeptOption[] = [{ value: 'all', label: 'Semua Departemen' }];
+      data.forEach((d: any) => {
+        if (d.code !== 'all') {
+          opts.push({ value: d.code, label: d.name });
+        }
+      });
+      setDeptOptions(opts);
+    }
+  };
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -60,7 +76,10 @@ export default function DocumentsPage() {
     }
 
     const { data, error } = await q;
-    if (!error && data) setDocuments(data as KMSDocument[]);
+    if (error) {
+      console.error('Error fetching documents:', error);
+    }
+    if (data) setDocuments(data as KMSDocument[]);
     setLoading(false);
   };
 
@@ -116,7 +135,7 @@ export default function DocumentsPage() {
             onChange={(e) => { setDeptFilter(e.target.value); setPage(0); }}
             style={{ padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '0.88rem', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
           >
-            {DEPT_OPTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+            {deptOptions.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
           </select>
           <select
             value={statusFilter}
@@ -129,7 +148,7 @@ export default function DocumentsPage() {
 
         {/* Department quick tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          {DEPT_OPTIONS.map((d) => (
+          {deptOptions.map((d) => (
             <button
               key={d.value}
               onClick={() => { setDeptFilter(d.value); setPage(0); }}

@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 
 // ── Navbar Auth Manager ────────────────────────────────────
@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 // and injects a user menu into the navbar when logged in.
 function NavbarAuthManager() {
   const { currentUser, isAdmin, loading, logout } = useAuth();
+  const observerRef = useRef<MutationObserver | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -20,11 +21,33 @@ function NavbarAuthManager() {
       html.removeAttribute('data-kms-role');
     }
 
-    // Inject/update user menu in navbar
-    updateNavbarUserMenu(currentUser, logout);
+    // Inject user menu into navbar — and keep re-injecting
+    // when Docusaurus re-renders the navbar (client-side nav).
+    const inject = () => {
+      updateNavbarUserMenu(currentUser, logout);
+    };
+
+    // Initial inject
+    inject();
+
+    // Re-inject after a short delay (Docusaurus hydration)
+    const timer = setTimeout(inject, 500);
+
+    // Observe the navbar for DOM changes so we can re-inject
+    const navbar = document.querySelector('.navbar');
+    if (navbar) {
+      observerRef.current = new MutationObserver(() => {
+        // Only re-inject if our menu got removed
+        if (!document.getElementById('kms-navbar-user-menu')) {
+          inject();
+        }
+      });
+      observerRef.current.observe(navbar, { childList: true, subtree: true });
+    }
 
     return () => {
-      // Cleanup on unmount
+      clearTimeout(timer);
+      observerRef.current?.disconnect();
       const existing = document.getElementById('kms-navbar-user-menu');
       if (existing) existing.remove();
     };

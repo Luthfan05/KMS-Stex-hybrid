@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 
 // ── Types ──────────────────────────────────────────────────
 export type UserRole = 'admin' | 'editor' | 'viewer';
-export type Department = 'hrd' | 'finance' | 'operasional' | 'it' | 'legal' | 'all';
+export type Department = 'hrd' | 'finance' | 'produksi' | 'pertenunan' | 'persiapan' | 'pergudangan' | 'marketing' | 'all';
 
 export interface KMSUser {
   id: string;

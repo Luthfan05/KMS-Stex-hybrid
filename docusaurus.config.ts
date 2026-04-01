@@ -27,17 +27,12 @@ const config: Config = {
 
   i18n: {
     defaultLocale: 'id',
-    locales: ['id', 'en'],
+    locales: ['id'],
     localeConfigs: {
       id: {
         label: 'Bahasa Indonesia',
         direction: 'ltr',
         htmlLang: 'id',
-      },
-      en: {
-        label: 'English',
-        direction: 'ltr',
-        htmlLang: 'en',
       },
     },
   },
@@ -76,7 +71,6 @@ const config: Config = {
         { to: '/dictionary', label: 'Dictionary', position: 'left' },
         { to: '/faq', label: 'FAQ', position: 'left' },
         { to: '/about', label: 'Tentang KMS', position: 'left' },
-        { type: 'localeDropdown', position: 'right' },
         { to: '/admin', label: '⚙️', position: 'right', className: 'navbar-admin-btn' },
         { to: '/login', label: 'Masuk', position: 'right', className: 'navbar-login-btn' },
       ],
