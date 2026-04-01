@@ -5,6 +5,7 @@ import { supabase, timeAgo } from '../lib/supabase';
 import type { KMSDocument, DocumentVersion, Comment, Feedback } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import VersionHistory from '../components/VersionHistory';
+import CopyProtectedWrapper from '../components/CopyProtectedWrapper';
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -252,46 +253,13 @@ function FeedbackSection({ documentId }: { documentId: string }) {
   );
 }
 
-// ── Copy Protection Wrapper ────────────────────────────────
-function CopyProtectedWrapper({ children }: { children: React.ReactNode }) {
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleCopy = (e: ClipboardEvent) => {
-      e.preventDefault();
-      if (e.clipboardData) {
-        e.clipboardData.setData('text/plain', '');
-      }
-    };
-
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
-
-    el.addEventListener('copy', handleCopy);
-    el.addEventListener('contextmenu', handleContextMenu);
-
-    return () => {
-      el.removeEventListener('copy', handleCopy);
-      el.removeEventListener('contextmenu', handleContextMenu);
-    };
-  }, []);
-
-  return (
-    <div ref={containerRef} className="no-copy">
-      {children}
-    </div>
-  );
-}
 
 // ── Main Page ──────────────────────────────────────────────
 export default function DocumentViewPage() {
   const query = useQuery();
   const slug = query.get('slug');
-  const { currentUser, isEditor } = useAuth();
+  const { currentUser, isEditor, isAdmin } = useAuth();
 
   const [document, setDocument] = useState<KMSDocument | null>(null);
   const [latestVersion, setLatestVersion] = useState<DocumentVersion | null>(null);
@@ -356,6 +324,9 @@ export default function DocumentViewPage() {
     );
   }
 
+  // Can the current user edit this document?
+  const canEdit = isAdmin || (isEditor && document.department === currentUser?.department);
+
   return (
     <Layout title={document.title} description={`${document.title} — STex KMS`}>
       <CopyProtectedWrapper>
@@ -401,7 +372,7 @@ export default function DocumentViewPage() {
             <span>Diperbarui: {document.updated_at ? timeAgo(document.updated_at) : '—'}</span>
           </div>
 
-          {isEditor && (
+          {canEdit && (
             <div style={{ marginTop: '0.75rem' }}>
               <a
                 href={`/documents/edit?id=${document.id}`}

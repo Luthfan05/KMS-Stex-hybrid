@@ -33,17 +33,19 @@ function NavbarAuthManager() {
     // Re-inject after a short delay (Docusaurus hydration)
     const timer = setTimeout(inject, 500);
 
-    // Observe the navbar for DOM changes so we can re-inject
-    const navbar = document.querySelector('.navbar');
-    if (navbar) {
-      observerRef.current = new MutationObserver(() => {
-        // Only re-inject if our menu got removed
-        if (!document.getElementById('kms-navbar-user-menu')) {
-          inject();
-        }
-      });
-      observerRef.current.observe(navbar, { childList: true, subtree: true });
-    }
+    // Observe the body for DOM changes so we can re-inject
+    // because the navbar might not exist yet when this effect runs.
+    observerRef.current = new MutationObserver(() => {
+      const navbarRight = document.querySelector('.navbar__items--right');
+      const existingMenu = document.getElementById('kms-navbar-user-menu');
+      
+      // If navbar exists but our menu doesn't, inject it
+      if (navbarRight && !existingMenu) {
+        inject();
+      }
+    });
+    
+    observerRef.current.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       clearTimeout(timer);

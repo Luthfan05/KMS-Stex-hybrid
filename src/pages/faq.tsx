@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@theme/Layout';
 import { supabase } from '../lib/supabase';
+import CopyProtectedWrapper from '../components/CopyProtectedWrapper';
 
 interface FAQEntry {
   id: string;
@@ -34,6 +35,7 @@ export default function FAQPage() {
 
   return (
     <Layout title="FAQ" description="Pertanyaan yang Sering Diajukan">
+      <CopyProtectedWrapper>
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '2.5rem 1.5rem 4rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
@@ -112,6 +114,7 @@ export default function FAQPage() {
           Punya pertanyaan yang tidak tercantum di sini? Hubungi administrator Anda untuk informasi lebih lanjut.
         </div>
       </div>
+      </CopyProtectedWrapper>
     </Layout>
   );
 }

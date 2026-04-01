@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@theme/Layout';
 import { supabase } from '../lib/supabase';
+import CopyProtectedWrapper from '../components/CopyProtectedWrapper';
 
 interface DictionaryEntry {
   id: string;
@@ -43,6 +44,7 @@ export default function DictionaryPage() {
 
   return (
     <Layout title="Kamus Istilah" description="Kamus istilah internal perusahaan">
+      <CopyProtectedWrapper>
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '2.5rem 1.5rem 4rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
@@ -119,6 +121,7 @@ export default function DictionaryPage() {
           Kamus ini dikelola oleh tim admin. Hubungi admin untuk mengusulkan istilah baru.
         </div>
       </div>
+      </CopyProtectedWrapper>
     </Layout>
   );
 }

@@ -2,12 +2,29 @@ import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@theme/Layout';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase, timeAgo } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { supabase, timeAgo, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
 import type { Profile, ActivityLog, KMSDocument } from '../lib/supabase';
 import AuthGuard from '../components/AuthGuard';
 
 interface AdminProfile extends Profile {
   roles?: { name: string };
+}
+
+interface DictionaryEntry {
+  id: string;
+  term: string;
+  full_form: string;
+  description: string;
+  created_at: string;
+}
+
+interface FAQEntry {
+  id: string;
+  question: string;
+  answer: string;
+  sort_order: number;
+  created_at: string;
 }
 
 const roleColors: Record<string, string> = {
@@ -38,7 +55,30 @@ function AdminDashboard() {
   const [editRole, setEditRole] = useState('');
   const [editDept, setEditDept] = useState('');
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'documents' | 'logs'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'documents' | 'logs' | 'dictionary' | 'faq'>('users');
+
+  const [dictionary, setDictionary] = useState<DictionaryEntry[]>([]);
+  const [faqs, setFaqs] = useState<FAQEntry[]>([]);
+
+  // Dictionary state
+  const [newDictTerm, setNewDictTerm] = useState('');
+  const [newDictFull, setNewDictFull] = useState('');
+  const [newDictDesc, setNewDictDesc] = useState('');
+
+  // FAQ state
+  const [newFaqQ, setNewFaqQ] = useState('');
+  const [newFaqA, setNewFaqA] = useState('');
+  const [newFaqOrder, setNewFaqOrder] = useState<number>(1);
+
+  // Add User State
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPass, setNewUserPass] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserNomor, setNewUserNomor] = useState('');
+  const [newUserRole, setNewUserRole] = useState('');
+  const [newUserDept, setNewUserDept] = useState('all');
+  const [addUserError, setAddUserError] = useState('');
 
   const departments = ['all', 'hrd', 'finance', 'produksi', 'pertenunan', 'persiapan', 'pergudangan', 'marketing'];
 
@@ -48,16 +88,27 @@ function AdminDashboard() {
 
   const fetchAll = async () => {
     setLoadingData(true);
-    await Promise.all([fetchUsers(), fetchRoles(), fetchDocuments(), fetchLogs()]);
+    await Promise.all([fetchUsers(), fetchRoles(), fetchDocuments(), fetchLogs(), fetchDictionary(), fetchFAQ()]);
     setLoadingData(false);
+  };
+
+  const fetchDictionary = async () => {
+    const { data, error } = await supabase.from('dictionary').select('*').order('term');
+    if (data) setDictionary(data as DictionaryEntry[]);
+  };
+
+  const fetchFAQ = async () => {
+    const { data } = await supabase.from('faq').select('*').order('sort_order', { ascending: true });
+    if (data) setFaqs(data as FAQEntry[]);
   };
 
   const fetchUsers = async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, roles(name), last_login, status')
+      .select('*, roles(name)')
       .order('created_at', { ascending: false });
     if (!error && data) setUsers(data as AdminProfile[]);
+    else if (error) console.error('Error fetching users:', error);
   };
 
   const fetchRoles = async () => {
@@ -105,6 +156,111 @@ function AdminDashboard() {
     }
     setSaving(false);
     setEditingUser(null);
+  };
+
+  const handleAddUser = async () => {
+    if (!newUserEmail || !newUserPass || !newUserName || !newUserRole) {
+      setAddUserError(isEn ? 'Please fill in all required fields.' : 'Harap lengkapi semua kolom wajib.');
+      return;
+    }
+    
+    setAddUserError('');
+    setSaving(true);
+
+    try {
+      // Use clean client with persistSession: false to avoid logging out the admin
+      const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+      });
+
+      const { data, error } = await tempClient.auth.signUp({
+        email: newUserEmail,
+        password: newUserPass,
+        options: {
+          data: { name: newUserName },
+        }
+      });
+
+      if (error) throw error;
+      
+      const newUserId = data.user?.id;
+      if (!newUserId) {
+        throw new Error('Gagal membuat akun.');
+      }
+
+      // Wait a moment for trigger to insert the profile row
+      await new Promise(r => setTimeout(r, 800));
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          role_id: newUserRole,
+          department: newUserDept,
+          nomor_induk: newUserNomor || null
+        })
+        .eq('id', newUserId);
+      
+      if (profileError) throw profileError;
+
+      await supabase.from('activity_logs').insert({
+        user_id: currentUser?.id,
+        action: 'admin_create_user',
+        document_id: null,
+      });
+
+      // Clear & Close
+      setNewUserEmail(''); setNewUserPass(''); setNewUserName(''); setNewUserNomor('');
+      setShowAddUser(false);
+      await fetchUsers();
+    } catch (err: any) {
+      console.error(err);
+      setAddUserError(err.message || 'Terjadi kesalahan saat menambahkan pengguna.');
+    } finally {
+      setSaving(true); // disable double click
+      setTimeout(() => setSaving(false), 500);
+    }
+  };
+
+  const addDictionary = async () => {
+    if (!newDictTerm || !newDictFull || !newDictDesc) return;
+    setSaving(true);
+    const { error } = await supabase.from('dictionary').insert({
+      term: newDictTerm,
+      full_form: newDictFull,
+      description: newDictDesc,
+    });
+    if (!error) {
+      setNewDictTerm(''); setNewDictFull(''); setNewDictDesc('');
+      await fetchDictionary();
+    }
+    setSaving(false);
+  };
+
+  const deleteDictionary = async (id: string, term: string) => {
+    if (!confirm(`Hapus istilah ${term}?`)) return;
+    await supabase.from('dictionary').delete().eq('id', id);
+    await fetchDictionary();
+  };
+
+  const addFaq = async () => {
+    if (!newFaqQ || !newFaqA) return;
+    setSaving(true);
+    const { error } = await supabase.from('faq').insert({
+      question: newFaqQ,
+      answer: newFaqA,
+      sort_order: newFaqOrder,
+    });
+    if (!error) {
+      setNewFaqQ(''); setNewFaqA(''); setNewFaqOrder(faqs.length + 2);
+      await fetchFAQ();
+    }
+    setSaving(false);
+  };
+
+  const deleteFaq = async (id: string) => {
+    if (!confirm('Hapus FAQ ini?')) return;
+    await supabase.from('faq').delete().eq('id', id);
+    await fetchFAQ();
   };
 
   const filtered = users.filter((u) => {
@@ -165,6 +321,8 @@ function AdminDashboard() {
             { key: 'users', label: isEn ? 'Users' : 'Pengguna' },
             { key: 'documents', label: isEn ? 'Documents' : 'Dokumen' },
             { key: 'logs', label: isEn ? 'Activity Log' : 'Log Aktivitas' },
+            { key: 'dictionary', label: isEn ? 'Dictionary' : 'Kamus' },
+            { key: 'faq', label: 'FAQ' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -191,9 +349,77 @@ function AdminDashboard() {
         {/* ── TAB: Users ── */}
         {activeTab === 'users' && (
           <div className="kms-card">
+            {/* Header & Add Button */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center' }}>
               <h3 style={{ margin: 0, flex: 1 }}>{isEn ? 'User Management' : 'Manajemen Pengguna'}</h3>
+              <button
+                onClick={() => {
+                  setShowAddUser(!showAddUser);
+                  if (!showAddUser && !newUserRole && roles.length > 0) {
+                    setNewUserRole(roles.find(r => r.name === 'viewer')?.id || roles[0].id);
+                  }
+                }}
+                className="kms-btn kms-btn--accent"
+                style={{ width: 'auto', padding: '6px 14px', fontSize: '0.85rem' }}
+              >
+                {showAddUser ? (isEn ? 'Cancel' : 'Batal') : (isEn ? '+ New User' : '+ Pengguna Baru')}
+              </button>
             </div>
+
+            {/* Add User Form */}
+            {showAddUser && (
+              <div style={{ background: 'var(--ifm-background-surface-color)', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid var(--ifm-toc-border-color)' }}>
+                <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.05rem', color: 'var(--kms-primary)' }}>
+                  {isEn ? 'Create New Account' : 'Buat Akun Baru'}
+                </h4>
+                
+                {addUserError && (
+                  <div className="kms-notice kms-notice--lock" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
+                    {addUserError}
+                  </div>
+                )}
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div className="kms-form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Full Name *' : 'Nama Lengkap *'}</label>
+                    <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
+                  </div>
+                  <div className="kms-form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Email Address *' : 'Alamat Email *'}</label>
+                    <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
+                  </div>
+                  <div className="kms-form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Nomor Induk' : 'Nomor Induk'}</label>
+                    <input type="text" value={newUserNomor} onChange={e => setNewUserNomor(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
+                  </div>
+                  <div className="kms-form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Password *' : 'Kata Sandi *'}</label>
+                    <input type="password" value={newUserPass} onChange={e => setNewUserPass(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
+                  </div>
+                  <div className="kms-form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Role *' : 'Peran *'}</label>
+                    <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }}>
+                      <option value="" disabled>{isEn ? 'Select Role' : 'Pilih Peran'}</option>
+                      {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="kms-form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Department *' : 'Departemen *'}</label>
+                    <select value={newUserDept} onChange={e => setNewUserDept(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }}>
+                      {departments.map((d) => <option key={d} value={d}>{deptLabel(d)}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddUser}
+                  disabled={saving || !newUserEmail || !newUserPass || !newUserName || !newUserRole}
+                  className="kms-btn kms-btn--primary"
+                  style={{ width: 'auto', padding: '8px 18px', fontSize: '0.85rem' }}
+                >
+                  {saving ? '...' : isEn ? 'Create User' : 'Buat Pengguna'}
+                </button>
+              </div>
+            )}
 
             {/* Filters */}
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
@@ -435,6 +661,155 @@ function AdminDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── TAB: Dictionary ── */}
+        {activeTab === 'dictionary' && (
+          <div className="kms-card">
+            <h3 style={{ marginBottom: '1.25rem' }}>{isEn ? 'Dictionary Management' : 'Manajemen Kamus Istilah'}</h3>
+            
+            {/* Add New Dictionary Form */}
+            <div style={{ background: 'var(--ifm-background-surface-color)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid var(--ifm-toc-border-color)' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem', color: 'var(--kms-primary)' }}>{isEn ? 'Add New Term' : 'Tambah Istilah Baru'}</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder={isEn ? 'Term (e.g., SOP)' : 'Istilah (cth: SOP)'}
+                  value={newDictTerm}
+                  onChange={(e) => setNewDictTerm(e.target.value)}
+                  style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit' }}
+                />
+                <input
+                  type="text"
+                  placeholder={isEn ? 'Full Form' : 'Kepanjangan (cth: Standar Operasional)'}
+                  value={newDictFull}
+                  onChange={(e) => setNewDictFull(e.target.value)}
+                  style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit' }}
+                />
+                <input
+                  type="text"
+                  placeholder={isEn ? 'Validation rules or short description...' : 'Deskripsi singkat...'}
+                  value={newDictDesc}
+                  onChange={(e) => setNewDictDesc(e.target.value)}
+                  style={{ gridColumn: '1 / -1', padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit' }}
+                />
+              </div>
+              <button
+                onClick={addDictionary}
+                disabled={saving || !newDictTerm || !newDictFull || !newDictDesc}
+                className="kms-btn kms-btn--accent"
+                style={{ width: 'auto', padding: '6px 16px', fontSize: '0.85rem' }}
+              >
+                {saving ? '...' : isEn ? 'Add Term' : 'Tambah Istilah'}
+              </button>
+            </div>
+
+            {/* List */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--ifm-toc-border-color)' }}>
+                    <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontSize: '0.78rem' }}>{isEn ? 'TERM' : 'ISTILAH'}</th>
+                    <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontSize: '0.78rem' }}>{isEn ? 'FULL FORM' : 'KEPANJANGAN'}</th>
+                    <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontSize: '0.78rem' }}>{isEn ? 'DESCRIPTION' : 'DESKRIPSI'}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dictionary.map(d => (
+                    <tr key={d.id} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 600 }}>{d.term}</td>
+                      <td style={{ padding: '0.75rem', color: '#6b7280' }}>{d.full_form}</td>
+                      <td style={{ padding: '0.75rem', color: '#6b7280', maxWidth: '300px' }}>{d.description}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                        <button onClick={() => deleteDictionary(d.id, d.term)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          {isEn ? 'Delete' : 'Hapus'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {dictionary.length === 0 && (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Belum ada kamus</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: FAQ ── */}
+        {activeTab === 'faq' && (
+          <div className="kms-card">
+            <h3 style={{ marginBottom: '1.25rem' }}>{isEn ? 'FAQ Management' : 'Manajemen FAQ'}</h3>
+            
+            {/* Add New FAQ Form */}
+            <div style={{ background: 'var(--ifm-background-surface-color)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid var(--ifm-toc-border-color)' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem', color: 'var(--kms-primary)' }}>{isEn ? 'Add New FAQ' : 'Tambah FAQ Baru'}</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 100px', gap: '1rem', marginBottom: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder={isEn ? 'Question...' : 'Pertanyaan...'}
+                  value={newFaqQ}
+                  onChange={(e) => setNewFaqQ(e.target.value)}
+                  style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit' }}
+                />
+                <input
+                  type="number"
+                  placeholder="Urutan"
+                  value={newFaqOrder}
+                  onChange={(e) => setNewFaqOrder(parseInt(e.target.value) || 0)}
+                  style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit' }}
+                />
+                <textarea
+                  placeholder={isEn ? 'Answer...' : 'Jawaban...'}
+                  value={newFaqA}
+                  onChange={(e) => setNewFaqA(e.target.value)}
+                  rows={3}
+                  style={{ gridColumn: '1 / -1', padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', resize: 'vertical' }}
+                />
+              </div>
+              <button
+                onClick={addFaq}
+                disabled={saving || !newFaqQ || !newFaqA}
+                className="kms-btn kms-btn--accent"
+                style={{ width: 'auto', padding: '6px 16px', fontSize: '0.85rem' }}
+              >
+                {saving ? '...' : isEn ? 'Add FAQ' : 'Tambah FAQ'}
+              </button>
+            </div>
+
+            {/* List */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--ifm-toc-border-color)' }}>
+                    <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontSize: '0.78rem', width: '60px' }}>URUTAN</th>
+                    <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontSize: '0.78rem' }}>{isEn ? 'QUESTION / ANSWER' : 'PERTANYAAN / JAWABAN'}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {faqs.map(f => (
+                    <tr key={f.id} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, textAlign: 'center' }}>{f.sort_order}</td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--ifm-color-emphasis-900)', marginBottom: '0.25rem' }}>{f.question}</div>
+                        <div style={{ color: '#6b7280', fontSize: '0.82rem' }}>{f.answer}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                        <button onClick={() => deleteFaq(f.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          {isEn ? 'Delete' : 'Hapus'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {faqs.length === 0 && (
+                    <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Belum ada FAQ</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

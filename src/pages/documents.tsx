@@ -29,7 +29,7 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<KMSDocument[]>([]);
   const [deptOptions, setDeptOptions] = useState<DeptOption[]>([{ value: 'all', label: 'Semua Departemen' }]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(query.get('q') || '');
   const [deptFilter, setDeptFilter] = useState(query.get('dept') || 'all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(0);

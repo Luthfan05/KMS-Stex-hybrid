@@ -18,6 +18,15 @@ const DEPT_META = [
 
 function HeroSection({ lang, docCount }: { lang: string; docCount: number }) {
   const isEn = lang === 'en';
+  const [query, setQuery] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      window.location.href = `/documents?q=${encodeURIComponent(query.trim())}`;
+    }
+  };
+
   return (
     <section className="kms-hero">
       <div className="kms-hero__eyebrow">
@@ -31,21 +40,18 @@ function HeroSection({ lang, docCount }: { lang: string; docCount: number }) {
           ? `Access SOPs, policies, guidelines, and company procedures — fast, organized, and always up-to-date. ${docCount > 0 ? `(${docCount} documents available)` : ''}`
           : `Akses SOP, kebijakan, panduan, dan prosedur perusahaan — cepat, terorganisir, dan selalu terkini. ${docCount > 0 ? `(${docCount} dokumen tersedia)` : ''}`}
       </p>
-      <div className="kms-hero__search">
+      <form onSubmit={handleSearch} className="kms-hero__search" style={{ position: 'relative' }}>
         <input
           type="text"
           placeholder={isEn ? 'Search for SOPs, policies, guides...' : 'Cari SOP, kebijakan, panduan...'}
           aria-label="Search KMS"
-          onFocus={(e) => {
-            const searchBtn = document.querySelector<HTMLButtonElement>('.DocSearch-Button');
-            if (searchBtn) searchBtn.click();
-            (e.target as HTMLInputElement).blur();
-          }}
-          readOnly
-          style={{ cursor: 'pointer' }}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
         />
-        <span className="kms-hero__search-icon">&#128269;</span>
-      </div>
+        <button type="submit" style={{ background: 'none', border: 'none', position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', padding: 0 }}>
+          <span className="kms-hero__search-icon" style={{ position: 'relative', top: 0, right: 0, transform: 'none' }}>&#128269;</span>
+        </button>
+      </form>
     </section>
   );
 }
@@ -97,84 +103,55 @@ function RecentActivity({ lang, logs }: { lang: string; logs: ActivityLog[] }) {
   return (
     <section style={{ background: 'var(--ifm-background-surface-color)', padding: '2.5rem 2rem', borderTop: '1px solid var(--ifm-toc-border-color)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <h3 style={{ fontSize: '1rem', color: '#6b7280', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {isEn ? 'Recent Activity' : 'Aktivitas Terbaru'}
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {logs.slice(0, 5).map((log) => (
-            <div key={log.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--ifm-toc-border-color)' }}>
-              <span style={{ fontSize: '0.82rem', minWidth: '20px', color: '#6b7280', fontFamily: 'monospace' }}>
-                {log.action?.includes('create') ? 'NEW' : log.action?.includes('edit') ? 'EDT' : log.action?.includes('login') ? 'LOG' : 'ACT'}
-              </span>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '0.83rem', color: '#374151' }}>
-                  <strong>{(log as any).profiles?.name || 'Unknown'}</strong>
-                  {' — '}
-                  <span style={{ color: '#6b7280' }}>{log.action || '—'}</span>
-                  {(log as any).documents?.title && (
-                    <span>
-                      {': '}
-                      <a href={`/document?slug=${(log as any).documents.slug}`} style={{ color: 'var(--kms-accent)', textDecoration: 'none' }}>
-                        {(log as any).documents.title}
-                      </a>
-                    </span>
-                  )}
-                </span>
-              </div>
-              <span style={{ fontSize: '0.75rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>
-                {log.created_at ? timeAgo(log.created_at) : ''}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: '1rem' }}>
-          <Link to="/documents" style={{ fontSize: '0.83rem', color: 'var(--kms-accent)', textDecoration: 'none', fontWeight: 600 }}>
-            {isEn ? 'Browse all documents →' : 'Lihat semua dokumen →'}
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
+        <details>
+          <summary style={{ cursor: 'pointer', outline: 'none', fontWeight: 600, color: '#6b7280', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {isEn ? 'Recent Activity' : 'Aktivitas Terbaru'}
+          </summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+            {logs.slice(0, 5).map((log) => {
+              const docTitle = (log as any).documents?.title;
+              const docSlug = (log as any).documents?.slug;
+              const docLink = docTitle ? (
+                <a href={`/document?slug=${docSlug}`} style={{ color: 'var(--kms-accent)', textDecoration: 'none', fontWeight: 600 }}>
+                  "{docTitle}"
+                </a>
+              ) : null;
+              
+              let actionText: React.ReactNode = 'Aktivitas sistem';
+              const action = log.action || '';
+              
+              if (action === 'view_document') actionText = <>{docLink || 'Dokumen'} {isEn ? 'accessed' : 'diakses'}</>;
+              else if (action === 'add_comment') actionText = <>{isEn ? 'New comment on' : 'Komentar baru pada'} {docLink || 'dokumen'}</>;
+              else if (action.includes('create_user')) actionText = isEn ? 'New user added' : 'Pengguna baru ditambahkan';
+              else if (action.includes('update_user')) actionText = isEn ? 'User profile updated' : 'Profil pengguna diperbarui';
+              else if (action.includes('create')) actionText = <>{isEn ? 'Document' : 'Dokumen'} {docLink} {isEn ? 'created' : 'ditambahkan'}</>;
+              else if (action.includes('edit')) actionText = <>{isEn ? 'Document' : 'Dokumen'} {docLink} {isEn ? 'updated' : 'diperbarui'}</>;
+              else if (action.includes('login')) actionText = isEn ? 'System login' : 'Masuk ke sistem';
+              else if (docLink) actionText = <>{docLink} {isEn ? 'modified' : 'diubah'}</>;
 
-function QuickLinks({ lang }: { lang: string }) {
-  const isEn = lang === 'en';
-  const links = [
-    { label: isEn ? 'All Documents' : 'Semua Dokumen', path: '/documents' },
-    { label: isEn ? 'Login' : 'Masuk', path: '/login' },
-    { label: isEn ? 'Admin Dashboard' : 'Dashboard Admin', path: '/admin' },
-    { label: isEn ? 'User Guide' : 'Panduan Penggunaan', path: '/documents?dept=all' },
-  ];
-  return (
-    <section style={{ padding: '2rem 2rem 3rem', borderTop: '1px solid var(--ifm-toc-border-color)' }}>
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <h3 style={{ fontSize: '1rem', color: '#6b7280', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {isEn ? 'Quick Access' : 'Akses Cepat'}
-        </h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-          {links.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '8px 16px', background: '#ffffff', border: '1.5px solid var(--ifm-toc-border-color)',
-                borderRadius: '8px', fontSize: '0.85rem', fontWeight: 500,
-                color: 'var(--kms-primary)', textDecoration: 'none', transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = 'var(--kms-accent)';
-                (e.currentTarget as HTMLElement).style.color = 'var(--kms-accent)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = 'var(--ifm-toc-border-color)';
-                (e.currentTarget as HTMLElement).style.color = 'var(--kms-primary)';
-              }}
-            >
-              {link.label}
+              return (
+                <div key={log.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--ifm-toc-border-color)' }}>
+                  <span style={{ fontSize: '0.82rem', minWidth: '20px', color: '#6b7280', fontFamily: 'monospace' }}>
+                    {action.includes('create') ? 'NEW' : action.includes('edit') ? 'EDT' : action.includes('login') ? 'LOG' : 'ACT'}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.88rem', color: '#374151' }}>
+                      {actionText}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                    {log.created_at ? timeAgo(log.created_at) : ''}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: '1rem' }}>
+            <Link to="/documents" style={{ fontSize: '0.83rem', color: 'var(--kms-accent)', textDecoration: 'none', fontWeight: 600 }}>
+              {isEn ? 'Browse all documents →' : 'Lihat semua dokumen →'}
             </Link>
-          ))}
-        </div>
+          </div>
+        </details>
       </div>
     </section>
   );
@@ -212,7 +189,7 @@ export default function Home() {
     // Fetch recent activity logs
     const { data: logs } = await supabase
       .from('activity_logs')
-      .select('*, profiles(name), documents(title, slug)')
+      .select('*, profiles(name, department), documents(title, slug)')
       .order('created_at', { ascending: false })
       .limit(10);
     if (logs) setRecentLogs(logs as ActivityLog[]);
@@ -228,7 +205,6 @@ export default function Home() {
       <HeroSection lang={lang} docCount={totalDocs} />
       <DeptGrid lang={lang} deptCounts={deptCounts} />
       {currentUser && <RecentActivity lang={lang} logs={recentLogs} />}
-      <QuickLinks lang={lang} />
     </Layout>
   );
 }

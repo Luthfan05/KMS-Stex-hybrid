@@ -3,7 +3,7 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'STex KMS',
+  title: 'PT. Sukuntex KMS',
   tagline: 'Knowledge Management System',
   favicon: 'img/favicon.ico',
 
@@ -14,7 +14,7 @@ const config: Config = {
   url: 'https://kms.stex.co.id',
   baseUrl: '/',
 
-  organizationName: 'stex',
+  organizationName: 'PT. Sukuntex',
   projectName: 'kms',
 
   onBrokenLinks: 'warn',
@@ -52,6 +52,7 @@ const config: Config = {
   ],
 
   themeConfig: {
+    metadata: [{ name: 'google', content: 'notranslate' }],
     image: 'img/kms-social-card.png',
     colorMode: {
       defaultMode: 'light',
@@ -59,15 +60,16 @@ const config: Config = {
       respectPrefersColorScheme: false,
     },
     navbar: {
-      title: 'STex KMS',
+      title: 'PT. Sukuntex KMS',
       logo: {
-        alt: 'STex Logo',
+        alt: 'PT. Sukuntex Logo',
         src: 'img/logo.svg',
         srcDark: 'img/logo-dark.svg',
       },
       style: 'primary',
       hideOnScroll: false,
       items: [
+        { to: '/documents', label: 'Dokumen', position: 'left' },
         { to: '/dictionary', label: 'Dictionary', position: 'left' },
         { to: '/faq', label: 'FAQ', position: 'left' },
         { to: '/about', label: 'Tentang KMS', position: 'left' },
@@ -78,7 +80,7 @@ const config: Config = {
     footer: {
       style: 'light',
       links: [],
-      copyright: `© ${new Date().getFullYear()} STex. Knowledge Management System — Powered by Supabase.`,
+      copyright: `© ${new Date().getFullYear()} PT. Sukuntex Knowledge Management System.`,
     },
     prism: {
       theme: prismThemes.github,
