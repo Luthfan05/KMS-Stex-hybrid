@@ -68,6 +68,30 @@ function CommentSection({ documentId }: { documentId: string }) {
     setSubmitting(false);
   };
 
+  const deleteComment = async (commentId: string) => {
+    if (!window.confirm('Hapus komentar ini beserta balasannya?')) return;
+    setSubmitting(true);
+    // Delete replies first to prevent foreign key errors
+    const { error: err1 } = await supabase.from('comment_replies').delete().eq('comment_id', commentId);
+    if (err1) alert('Gagal menghapus balasan (RLS/Database Error): ' + err1.message);
+    
+    const { error: err2 } = await supabase.from('comments').delete().eq('id', commentId);
+    if (err2) alert('Gagal menghapus komentar: ' + err2.message);
+    
+    await fetchComments();
+    setSubmitting(false);
+  };
+
+  const deleteReply = async (replyId: string) => {
+    if (!window.confirm('Hapus balasan ini?')) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('comment_replies').delete().eq('id', replyId);
+    if (error) alert('Gagal: ' + error.message);
+    
+    await fetchComments();
+    setSubmitting(false);
+  };
+
   return (
     <div className="kms-card kms-card--static" style={{ marginTop: '2rem' }}>
       <h4 style={{ margin: '0 0 1.25rem', color: 'var(--kms-primary)', fontSize: '0.95rem', fontWeight: 700 }}>
@@ -122,12 +146,23 @@ function CommentSection({ documentId }: { documentId: string }) {
                     </span>
                   </div>
                   <p style={{ margin: 0, fontSize: '0.88rem', color: '#374151', lineHeight: 1.6 }}>{comment.content}</p>
-                  <button
-                    onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-                    style={{ background: 'none', border: 'none', color: 'var(--kms-accent)', fontSize: '0.78rem', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit', marginTop: '0.35rem' }}
-                  >
-                    {replyTo === comment.id ? '✕ Batal balas' : '↩ Balas'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
+                      style={{ background: 'none', border: 'none', color: 'var(--kms-accent)', fontSize: '0.78rem', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit', marginTop: '0.35rem' }}
+                    >
+                      {replyTo === comment.id ? '✕ Batal balas' : '↩ Balas'}
+                    </button>
+                    {(currentUser?.id === comment.user_id || currentUser?.role === 'admin') && (
+                      <button
+                        onClick={() => deleteComment(comment.id)}
+                        disabled={submitting}
+                        style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.78rem', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit', marginTop: '0.35rem' }}
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
 
                   {replyTo === comment.id && currentUser && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
@@ -158,7 +193,18 @@ function CommentSection({ documentId }: { documentId: string }) {
                           <div>
                             <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#374151' }}>{reply.profiles?.name || 'Unknown'}</span>
                             <span style={{ fontSize: '0.72rem', color: '#9ca3af', marginLeft: '6px' }}>{reply.created_at ? timeAgo(reply.created_at) : ''}</span>
-                            <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#374151' }}>{reply.content}</p>
+                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                              <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#374151' }}>{reply.content}</p>
+                              {(currentUser?.id === reply.user_id || currentUser?.role === 'admin') && (
+                                <button
+                                  onClick={() => deleteReply(reply.id)}
+                                  disabled={submitting}
+                                  style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.72rem', cursor: 'pointer', padding: '0', fontFamily: 'inherit', marginTop: '2px' }}
+                                >
+                                  Hapus
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -315,87 +361,87 @@ export default function DocumentViewPage() {
   const canEdit = isAdmin || (isEditor && document.department === currentUser?.department);
 
   return (
-    <Layout title={document.title} description={`${document.title} — STex KMS`}>
+    <Layout title={document.title} description={`${document.title} — PT. Sukuntex KMS`}>
       <CopyProtectedWrapper>
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '2rem 2rem 4rem' }}>
-        {/* Breadcrumb */}
-        <nav style={{ fontSize: '0.82rem', color: '#9ca3af', marginBottom: '1.5rem' }}>
-          <a href="/" style={{ color: '#9ca3af', textDecoration: 'none' }}>Beranda</a>
-          {' / '}
-          <a href="/documents" style={{ color: '#9ca3af', textDecoration: 'none' }}>Dokumen</a>
-          {' / '}
-          <span style={{ color: '#374151' }}>{document.title}</span>
-        </nav>
+        <div style={{ maxWidth: '860px', margin: '0 auto', padding: '2rem 2rem 4rem' }}>
+          {/* Breadcrumb */}
+          <nav style={{ fontSize: '0.82rem', color: '#9ca3af', marginBottom: '1.5rem' }}>
+            <a href="/" style={{ color: '#9ca3af', textDecoration: 'none' }}>Beranda</a>
+            {' / '}
+            <a href="/documents" style={{ color: '#9ca3af', textDecoration: 'none' }}>Dokumen</a>
+            {' / '}
+            <span style={{ color: '#374151' }}>{document.title}</span>
+          </nav>
 
-        {/* Document header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-            <span style={{
-              display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600,
-              background: document.status === 'published' ? '#d1fae5' : document.status === 'draft' ? '#fef3c7' : '#dbeafe',
-              color: document.status === 'published' ? '#065f46' : document.status === 'draft' ? '#92400e' : '#1e40af',
-            }}>
-              {document.status === 'published' ? 'Terbit' : document.status === 'draft' ? 'Draft' : 'Review'}
-            </span>
-            {latestVersion && (
-              <span style={{ fontSize: '0.75rem', color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: '20px' }}>
-                v{latestVersion.version_number}
+          {/* Document header */}
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{
+                display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600,
+                background: document.status === 'published' ? '#d1fae5' : document.status === 'draft' ? '#fef3c7' : '#dbeafe',
+                color: document.status === 'published' ? '#065f46' : document.status === 'draft' ? '#92400e' : '#1e40af',
+              }}>
+                {document.status === 'published' ? 'Terbit' : document.status === 'draft' ? 'Draft' : 'Review'}
               </span>
-            )}
-            {document.department && document.department !== 'all' && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--kms-primary)', background: 'var(--kms-primary-light)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600, textTransform: 'uppercase' }}>
-                {document.department}
-              </span>
-            )}
-          </div>
-
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 1rem', lineHeight: 1.3 }}>
-            {document.title}
-          </h1>
-
-          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.82rem', color: '#6b7280', flexWrap: 'wrap' }}>
-            <span>{(document as any).profiles?.name || 'Unknown'}</span>
-            <span>Dibuat: {document.created_at ? new Date(document.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span>
-            <span>Diperbarui: {document.updated_at ? timeAgo(document.updated_at) : '—'}</span>
-          </div>
-
-          {canEdit && (
-            <div style={{ marginTop: '0.75rem' }}>
-              <a
-                href={`/documents/edit?id=${document.id}`}
-                style={{ fontSize: '0.82rem', color: 'var(--kms-accent)', textDecoration: 'none', fontWeight: 600 }}
-              >
-                Edit Dokumen
-              </a>
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="kms-card kms-card--static" style={{ minHeight: '300px' }}>
-          {latestVersion?.content ? (
-            <MarkdownRenderer content={latestVersion.content} />
-          ) : (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#9ca3af' }}>--</div>
-              <p>Konten belum tersedia untuk dokumen ini.</p>
-              {canEdit && (
-                <a href={`/documents/edit?id=${document.id}`} className="kms-btn kms-btn--accent" style={{ width: 'auto', padding: '8px 20px', display: 'inline-block', textDecoration: 'none', marginTop: '0.5rem' }}>
-                  Tambah Konten
-                </a>
+              {latestVersion && (
+                <span style={{ fontSize: '0.75rem', color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: '20px' }}>
+                  v{latestVersion.version_number}
+                </span>
+              )}
+              {document.department && document.department !== 'all' && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--kms-primary)', background: 'var(--kms-primary-light)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600, textTransform: 'uppercase' }}>
+                  {document.department}
+                </span>
               )}
             </div>
-          )}
 
-          <FeedbackSection documentId={document.id} />
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 1rem', lineHeight: 1.3 }}>
+              {document.title}
+            </h1>
+
+            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.82rem', color: '#6b7280', flexWrap: 'wrap' }}>
+              <span>{(document as any).profiles?.name || 'Unknown'}</span>
+              <span>Dibuat: {document.created_at ? new Date(document.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span>
+              <span>Diperbarui: {document.updated_at ? timeAgo(document.updated_at) : '—'}</span>
+            </div>
+
+            {canEdit && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <a
+                  href={`/documents/edit?id=${document.id}`}
+                  style={{ fontSize: '0.82rem', color: 'var(--kms-accent)', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  Edit Dokumen
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="kms-card kms-card--static" style={{ minHeight: '300px' }}>
+            {latestVersion?.content ? (
+              <MarkdownRenderer content={latestVersion.content} />
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#9ca3af' }}>--</div>
+                <p>Konten belum tersedia untuk dokumen ini.</p>
+                {canEdit && (
+                  <a href={`/documents/edit?id=${document.id}`} className="kms-btn kms-btn--accent" style={{ width: 'auto', padding: '8px 20px', display: 'inline-block', textDecoration: 'none', marginTop: '0.5rem' }}>
+                    Tambah Konten
+                  </a>
+                )}
+              </div>
+            )}
+
+            <FeedbackSection documentId={document.id} />
+          </div>
+
+          {/* Version History — uses reusable component */}
+          <VersionHistory documentId={document.id} currentVersionNumber={latestVersion?.version_number} />
+
+          {/* Comments */}
+          <CommentSection documentId={document.id} />
         </div>
-
-        {/* Version History — uses reusable component */}
-        <VersionHistory documentId={document.id} currentVersionNumber={latestVersion?.version_number} />
-
-        {/* Comments */}
-        <CommentSection documentId={document.id} />
-      </div>
       </CopyProtectedWrapper>
     </Layout>
   );

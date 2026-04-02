@@ -66,3 +66,28 @@ CREATE POLICY "Editors update in their department"
         AND p.department = documents.department
     )
   );
+
+-- ==========================================
+-- DELETE POLICIES (Baru Ditambahkan)
+-- ==========================================
+
+-- Mengizinkan pengguna menghapus komentarnya sendiri, dan admin menghapus komentar siapa pun
+CREATE POLICY "Users can delete own comments" ON public.comments FOR DELETE USING (
+  user_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.profiles p JOIN public.roles r ON p.role_id = r.id 
+    WHERE p.id = auth.uid() AND r.name = 'admin'
+  )
+);
+
+-- Mengizinkan pengguna menghapus balasannya sendiri, dan admin menghapus balasan siapa pun
+CREATE POLICY "Users can delete own replies" ON public.comment_replies FOR DELETE USING (
+  user_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.profiles p JOIN public.roles r ON p.role_id = r.id 
+    WHERE p.id = auth.uid() AND r.name = 'admin'
+  )
+);
+
+-- Mengizinkan pengguna menghapus (atau mengganti) feedback-nya sendiri
+CREATE POLICY "Users can delete own feedback" ON public.feedback FOR DELETE USING (
+  user_id = auth.uid()
+);

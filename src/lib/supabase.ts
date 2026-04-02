@@ -9,7 +9,39 @@ import { createClient } from '@supabase/supabase-js';
 export const SUPABASE_URL = 'https://kecfkgpyywupjpjsostw.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlY2ZrZ3B5eXd1cGpwanNvc3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MjEyODYsImV4cCI6MjA5MDM5NzI4Nn0.MTmTw1YI6cGW1poI8Q-zM6LTwKQ85hZtmBr8yBtguv4';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Custom fetch wrapper with Retry and Reconnect (Exponential Backoff)
+const fetchWithRetry: typeof fetch = async (url, options) => {
+  const maxRetries = 3;
+  const baseDelay = 1000;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url, options);
+      // Memicu retry jika mendapatkan HTTP error 5xx (Server Error) atau 429 (Rate Limit)
+      if (!response.ok && (response.status >= 500 || response.status === 429)) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+      return response;
+    } catch (err: any) {
+      if (i === maxRetries - 1) throw err; // Menyerah jika mencapai batas retries
+      
+      const delay = baseDelay * Math.pow(2, i);
+      console.warn(`[KMS] Koneksi Supabase gagal. Mencoba memulihkan dalam ${delay}ms... (Percobaan ${i+1}/${maxRetries})`, err.message);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Maksimal percobaan koneksi terlampaui");
+};
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    fetch: fetchWithRetry,
+  }
+});
 
 // ── Database Types ─────────────────────────────────────────
 

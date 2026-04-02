@@ -63,9 +63,9 @@ export default function LoginPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1rem', fontSize: '1.75rem',
             }}>
-              KMS
+              Sike
             </div>
-            <h1>STex KMS</h1>
+            <h1>PT. Sukuntex KMS</h1>
             <p>{isEn ? 'Knowledge Management System' : 'Sistem Manajemen Pengetahuan'}</p>
           </div>
 
