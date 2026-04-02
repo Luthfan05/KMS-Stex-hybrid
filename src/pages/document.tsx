@@ -11,23 +11,7 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-// ── Markdown-like renderer (basic) ─────────────────────────
-function RenderContent({ content }: { content: string }) {
-  const lines = content.split('\n');
-  return (
-    <div style={{ lineHeight: 1.8, color: '#374151', fontSize: '0.95rem' }}>
-      {lines.map((line, i) => {
-        if (line.startsWith('# '))  return <h1 key={i} style={{ fontSize: '1.6rem', fontWeight: 700, marginTop: '1.5rem', color: '#111827' }}>{line.slice(2)}</h1>;
-        if (line.startsWith('## ')) return <h2 key={i} style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '1.25rem', color: '#1f2937', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.3rem' }}>{line.slice(3)}</h2>;
-        if (line.startsWith('### ')) return <h3 key={i} style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '1rem', color: '#374151' }}>{line.slice(4)}</h3>;
-        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} style={{ marginLeft: '1.5rem', marginBottom: '0.25rem' }}>{line.slice(2)}</li>;
-        if (line.startsWith('> ')) return <blockquote key={i} style={{ borderLeft: '4px solid var(--kms-accent)', paddingLeft: '1rem', color: '#6b7280', margin: '0.5rem 0', fontStyle: 'italic' }}>{line.slice(2)}</blockquote>;
-        if (line.trim() === '') return <br key={i} />;
-        return <p key={i} style={{ margin: '0 0 0.5rem' }}>{line}</p>;
-      })}
-    </div>
-  );
-}
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 // ── Comment Section ────────────────────────────────────────
 function CommentSection({ documentId }: { documentId: string }) {
@@ -43,6 +27,7 @@ function CommentSection({ documentId }: { documentId: string }) {
   }, [documentId]);
 
   const fetchComments = async () => {
+
     const { data } = await supabase
       .from('comments')
       .select('*, profiles(name), comment_replies(*, profiles(name))')
@@ -200,6 +185,7 @@ function FeedbackSection({ documentId }: { documentId: string }) {
   }, [documentId]);
 
   const fetchFeedback = async () => {
+
     const { data } = await supabase.from('feedback').select('type, user_id').eq('document_id', documentId);
     if (data) {
       setCounts({
@@ -272,6 +258,7 @@ export default function DocumentViewPage() {
   }, [slug]);
 
   const fetchDocument = async (s: string) => {
+
     const { data: doc, error } = await supabase
       .from('documents')
       .select('*, profiles(name)')
@@ -387,12 +374,12 @@ export default function DocumentViewPage() {
         {/* Content */}
         <div className="kms-card kms-card--static" style={{ minHeight: '300px' }}>
           {latestVersion?.content ? (
-            <RenderContent content={latestVersion.content} />
+            <MarkdownRenderer content={latestVersion.content} />
           ) : (
             <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
               <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#9ca3af' }}>--</div>
               <p>Konten belum tersedia untuk dokumen ini.</p>
-              {isEditor && (
+              {canEdit && (
                 <a href={`/documents/edit?id=${document.id}`} className="kms-btn kms-btn--accent" style={{ width: 'auto', padding: '8px 20px', display: 'inline-block', textDecoration: 'none', marginTop: '0.5rem' }}>
                   Tambah Konten
                 </a>

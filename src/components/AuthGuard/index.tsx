@@ -36,22 +36,7 @@ export default function AuthGuard({
 
   // Not logged in
   if (!currentUser) {
-    return (
-      <div className="kms-auth-container">
-        <div className="kms-auth-card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-          <h2 style={{ color: 'var(--kms-primary)', marginBottom: '0.5rem' }}>
-            Akses Terbatas
-          </h2>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            Anda harus masuk untuk melihat halaman ini.
-          </p>
-          <a href="/login" className="kms-btn kms-btn--primary">
-            Masuk Sekarang
-          </a>
-        </div>
-      </div>
-    );
+    return null; // GlobalAuthRedirect will redirect them to /login
   }
 
   // Role check

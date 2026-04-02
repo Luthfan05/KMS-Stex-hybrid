@@ -5,6 +5,7 @@ import { supabase, timeAgo } from '../../lib/supabase';
 import type { KMSDocument, DocumentVersion } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import AuthGuard from '../../components/AuthGuard';
+import imageCompression from 'browser-image-compression';
 
 const DEPT_OPTIONS = [
   { value: 'all', label: 'Semua Departemen' },
@@ -21,31 +22,12 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-// ── Markdown-like preview ──────────────────────────────────
-function RenderPreview({ content }: { content: string }) {
-  if (!content.trim()) {
-    return <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>Belum ada konten untuk di-preview...</p>;
-  }
-  const lines = content.split('\n');
-  return (
-    <div style={{ lineHeight: 1.8, color: '#374151', fontSize: '0.95rem' }}>
-      {lines.map((line, i) => {
-        if (line.startsWith('# '))  return <h1 key={i} style={{ fontSize: '1.6rem', fontWeight: 700, marginTop: '1.5rem', color: '#111827' }}>{line.slice(2)}</h1>;
-        if (line.startsWith('## ')) return <h2 key={i} style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '1.25rem', color: '#1f2937', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.3rem' }}>{line.slice(3)}</h2>;
-        if (line.startsWith('### ')) return <h3 key={i} style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '1rem', color: '#374151' }}>{line.slice(4)}</h3>;
-        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} style={{ marginLeft: '1.5rem', marginBottom: '0.25rem' }}>{line.slice(2)}</li>;
-        if (line.startsWith('> ')) return <blockquote key={i} style={{ borderLeft: '4px solid var(--kms-accent)', paddingLeft: '1rem', color: '#6b7280', margin: '0.5rem 0', fontStyle: 'italic' }}>{line.slice(2)}</blockquote>;
-        if (line.trim() === '') return <br key={i} />;
-        return <p key={i} style={{ margin: '0 0 0.5rem' }}>{line}</p>;
-      })}
-    </div>
-  );
-}
+import MarkdownRenderer from '../../components/MarkdownRenderer';
 
 function EditDocumentForm() {
   const query = useQuery();
   const docId = query.get('id');
-  const { currentUser } = useAuth();
+  const { currentUser, checkSession } = useAuth();
 
   const [docData, setDocData] = useState<KMSDocument | null>(null);
   const [title, setTitle] = useState('');
@@ -59,6 +41,8 @@ function EditDocumentForm() {
   const [success, setSuccess] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!docId) { setNotFound(true); setLoading(false); return; }
@@ -66,6 +50,7 @@ function EditDocumentForm() {
   }, [docId]);
 
   const fetchDocument = async () => {
+
     const { data: doc, error: docErr } = await supabase
       .from('documents')
       .select('*, profiles(name)')
@@ -73,6 +58,17 @@ function EditDocumentForm() {
       .single();
 
     if (docErr || !doc) { setNotFound(true); setLoading(false); return; }
+
+    const userDept = currentUser?.department;
+    const isDocOwner = currentUser?.role === 'admin' || (currentUser?.role === 'editor' && (userDept === 'all' || doc.department === userDept));
+
+    if (!isDocOwner) {
+      setError('Anda tidak memiliki izin untuk mengedit dokumen ini. Anda hanya bisa mengedit dokumen dari departemen Anda sendiri.');
+      setDocData(null);
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
 
 
     setDocData(doc as KMSDocument);
@@ -93,8 +89,27 @@ function EditDocumentForm() {
       setCurrentVersion(versions[0].version_number);
     }
 
+    // Load draft if exists
+    const draft = localStorage.getItem(`kms_edit_doc_draft_${docId}`);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (parsed.title) setTitle(parsed.title);
+        if (parsed.content) setContent(parsed.content);
+        if (parsed.department) setDepartment(parsed.department);
+        if (parsed.status) setStatus(parsed.status);
+      } catch (e) {}
+    }
+
     setLoading(false);
   };
+
+  // Save draft on change
+  React.useEffect(() => {
+    if (docId && docData && !loading) {
+      localStorage.setItem(`kms_edit_doc_draft_${docId}`, JSON.stringify({ title, content, department, status }));
+    }
+  }, [title, content, department, status, docId, docData, loading]);
 
   const insertMarkdown = (prefix: string, suffix = '') => {
     const textarea = window.document.getElementById('kms-content-editor') as HTMLTextAreaElement | null;
@@ -112,11 +127,75 @@ function EditDocumentForm() {
     }, 10);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setError('');
+
+    const sessionActive = await checkSession();
+    if (!sessionActive) {
+      setError('Sesi Anda telah berakhir. Harap buka tab baru untuk Login kembali agar bisa mengunggah gambar.');
+      setUploadingImage(false);
+      return;
+    }
+
+    try {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+        fileType: 'image/webp',
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      
+      const fileExt = 'webp';
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('document-images')
+        .upload(filePath, compressedFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from('document-images').getPublicUrl(filePath);
+      
+      const imageMarkdown = `![${file.name}](${data.publicUrl})`;
+      
+      const textarea = window.document.getElementById('kms-content-editor') as HTMLTextAreaElement | null;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const before = content.substring(0, start);
+        const after = content.substring(textarea.selectionEnd);
+        setContent(before + imageMarkdown + after);
+      } else {
+        setContent((prev) => prev + '\n' + imageMarkdown + '\n');
+      }
+    } catch (err: any) {
+      setError('Gagal mengupload gambar. Pastikan bucket "document-images" ada dan publik di Supabase. ' + (err.message || ''));
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!currentUser || !docData || !title.trim()) return;
     setError('');
     setSaving(true);
+
+    const sessionActive = await checkSession();
+    if (!sessionActive) {
+      setError('Sesi Anda telah berakhir. Draft tulisan Anda tersimpan di browser. Harap buka tab baru untuk Login kembali, lalu coba simpan lagi.');
+      setSaving(false);
+      return;
+    }
 
     try {
       // Update document metadata
@@ -151,6 +230,7 @@ function EditDocumentForm() {
         document_id: docData.id,
       });
 
+      localStorage.removeItem(`kms_edit_doc_draft_${docData.id}`);
       setCurrentVersion(newVersion);
       setSuccess(true);
       setTimeout(() => {
@@ -254,7 +334,7 @@ function EditDocumentForm() {
           </div>
 
           <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '0.5rem' }}>
-            Slug: <code style={{ background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>/{docData.slug}</code>
+            Tautan: <code style={{ background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>/{docData.slug}</code>
             {' · '}Dibuat: {docData.created_at ? timeAgo(docData.created_at) : '—'}
             {' · '}Oleh: {(docData as any).profiles?.name || '—'}
           </div>
@@ -297,6 +377,16 @@ function EditDocumentForm() {
                 <button type="button" onClick={() => insertMarkdown('*', '*')}>I</button>
                 <button type="button" onClick={() => insertMarkdown('- ')}>• List</button>
                 <button type="button" onClick={() => insertMarkdown('> ')}>Quote</button>
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
+                  {uploadingImage ? 'Mengupload...' : '🖼 Gambar'}
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
               </div>
 
               <textarea
@@ -309,7 +399,7 @@ function EditDocumentForm() {
             </>
           ) : (
             <div className="kms-editor__preview" style={{ marginTop: '0.75rem' }}>
-              <RenderPreview content={content} />
+              <MarkdownRenderer content={content} />
             </div>
           )}
         </div>

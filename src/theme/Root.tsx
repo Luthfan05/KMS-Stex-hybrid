@@ -1,4 +1,5 @@
 import React, { ReactNode, useEffect, useRef } from 'react';
+import { useLocation, useHistory } from '@docusaurus/router';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 
 // ── Navbar Auth Manager ────────────────────────────────────
@@ -101,12 +102,35 @@ function updateNavbarUserMenu(
   navbarRight.appendChild(menu);
 }
 
+// ── Global Auth Redirect ───────────────────────────────────
+// Forces redirect to login page for all other pages if user is not logged in
+function GlobalAuthRedirect() {
+  const { currentUser, loading } = useAuth();
+  const location = useLocation();
+  const history = useHistory();
+
+  useEffect(() => {
+    if (loading) return;
+    
+    if (location.pathname === '/login' || location.pathname === '/login/') {
+      return;
+    }
+
+    if (!currentUser) {
+      history.replace('/login');
+    }
+  }, [currentUser, loading, location.pathname, history]);
+
+  return null;
+}
+
 // ── Root Component ─────────────────────────────────────────
 // Docusaurus Root wrapper — wraps entire app with AuthProvider
 export default function Root({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
       <NavbarAuthManager />
+      <GlobalAuthRedirect />
       {children}
     </AuthProvider>
   );

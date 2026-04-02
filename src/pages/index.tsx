@@ -7,13 +7,14 @@ import type { ActivityLog } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const DEPT_META = [
-  { id: 'hrd',         name: 'HRD',          nameEn: 'Human Resources',      desc: 'Rekrutmen, kebijakan SDM, prosedur cuti, dan penilaian kinerja karyawan.', descEn: 'Recruitment, HR policies, leave procedures, and employee performance.' },
-  { id: 'finance',     name: 'Finance',       nameEn: 'Finance & Accounting',  desc: 'Prosedur keuangan, laporan bulanan, anggaran, dan reimbursement.', descEn: 'Financial procedures, monthly reports, budgets, and reimbursements.' },
-  { id: 'produksi',    name: 'Produksi',      nameEn: 'Production',            desc: 'Proses produksi, kontrol kualitas, dan standar operasional pabrik.', descEn: 'Production processes, quality control, and factory operational standards.' },
-  { id: 'pertenunan',  name: 'Pertenunan',    nameEn: 'Weaving',               desc: 'Proses tenun, pemeliharaan mesin tenun, dan standar kualitas kain.', descEn: 'Weaving processes, loom maintenance, and fabric quality standards.' },
-  { id: 'persiapan',   name: 'Persiapan',     nameEn: 'Preparation',           desc: 'Persiapan bahan baku, pencelupan, dan proses awal produksi.', descEn: 'Raw material preparation, dyeing, and pre-production processes.' },
-  { id: 'pergudangan', name: 'Pergudangan',   nameEn: 'Warehousing',           desc: 'Manajemen gudang, inventaris, penyimpanan, dan distribusi barang.', descEn: 'Warehouse management, inventory, storage, and goods distribution.' },
-  { id: 'marketing',   name: 'Marketing',     nameEn: 'Marketing & Sales',     desc: 'Strategi pemasaran, penjualan, hubungan pelanggan, dan promosi.', descEn: 'Marketing strategy, sales, customer relations, and promotions.' },
+  { id: 'all', name: 'Umum (Semua Department)', nameEn: 'General', desc: 'SOP dan kebijakan perusahaan yang berlaku untuk semua departemen.', descEn: 'Company SOPs and policies applicable to all departments.' },
+  { id: 'hrd', name: 'HRD', nameEn: 'Human Resources', desc: 'Rekrutmen, kebijakan SDM, prosedur cuti, dan penilaian kinerja karyawan.', descEn: 'Recruitment, HR policies, leave procedures, and employee performance.' },
+  { id: 'finance', name: 'Finance', nameEn: 'Finance & Accounting', desc: 'Prosedur keuangan, laporan bulanan, anggaran, dan reimbursement.', descEn: 'Financial procedures, monthly reports, budgets, and reimbursements.' },
+  { id: 'produksi', name: 'Produksi', nameEn: 'Production', desc: 'Proses produksi, kontrol kualitas, dan standar operasional pabrik.', descEn: 'Production processes, quality control, and factory operational standards.' },
+  { id: 'pertenunan', name: 'Pertenunan', nameEn: 'Weaving', desc: 'Proses tenun, pemeliharaan mesin tenun, dan standar kualitas kain.', descEn: 'Weaving processes, loom maintenance, and fabric quality standards.' },
+  { id: 'persiapan', name: 'Persiapan', nameEn: 'Preparation', desc: 'Persiapan bahan baku, pencelupan, dan proses awal produksi.', descEn: 'Raw material preparation, dyeing, and pre-production processes.' },
+  { id: 'pergudangan', name: 'Pergudangan', nameEn: 'Warehousing', desc: 'Manajemen gudang, inventaris, penyimpanan, dan distribusi barang.', descEn: 'Warehouse management, inventory, storage, and goods distribution.' },
+  { id: 'marketing', name: 'Marketing', nameEn: 'Marketing & Sales', desc: 'Strategi pemasaran, penjualan, hubungan pelanggan, dan promosi.', descEn: 'Marketing strategy, sales, customer relations, and promotions.' },
 ];
 
 function HeroSection({ lang, docCount }: { lang: string; docCount: number }) {
@@ -56,8 +57,16 @@ function HeroSection({ lang, docCount }: { lang: string; docCount: number }) {
   );
 }
 
-function DeptGrid({ lang, deptCounts }: { lang: string; deptCounts: Record<string, number> }) {
+function DeptGrid({ lang, deptCounts, currentUser, isAdmin }: { lang: string; deptCounts: Record<string, number>, currentUser: any, isAdmin: boolean }) {
   const isEn = lang === 'en';
+
+  const visibleDepts = DEPT_META.filter(dept => {
+    const isEditor = currentUser?.role === 'editor';
+    if (isAdmin || isEditor || !currentUser) return true;
+    if (currentUser.department === 'all') return true;
+    return dept.id === 'all' || dept.id === currentUser.department;
+  });
+
   return (
     <section style={{ padding: '3rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -71,7 +80,7 @@ function DeptGrid({ lang, deptCounts }: { lang: string; deptCounts: Record<strin
         </p>
       </div>
       <div className="kms-dept-grid">
-        {DEPT_META.map((dept) => {
+        {visibleDepts.map((dept) => {
           const count = deptCounts[dept.id] ?? 0;
           return (
             <Link key={dept.id} to={`/documents?dept=${dept.id}`} className="kms-dept-card">
@@ -116,10 +125,10 @@ function RecentActivity({ lang, logs }: { lang: string; logs: ActivityLog[] }) {
                   "{docTitle}"
                 </a>
               ) : null;
-              
+
               let actionText: React.ReactNode = 'Aktivitas sistem';
               const action = log.action || '';
-              
+
               if (action === 'view_document') actionText = <>{docLink || 'Dokumen'} {isEn ? 'accessed' : 'diakses'}</>;
               else if (action === 'add_comment') actionText = <>{isEn ? 'New comment on' : 'Komentar baru pada'} {docLink || 'dokumen'}</>;
               else if (action.includes('create_user')) actionText = isEn ? 'New user added' : 'Pengguna baru ditambahkan';
@@ -168,9 +177,12 @@ export default function Home() {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [currentUser]);
 
   const fetchStats = async () => {
+    // Memaksa penyegaran token jika kadaluarsa setelah tab idle lama
+
+
     // Fetch document counts grouped by department column
     const { data: docs } = await supabase
       .from('documents')
@@ -178,10 +190,16 @@ export default function Home() {
       .eq('status', 'published');
 
     if (docs) {
-      setTotalDocs(docs.length);
+      let allowedDocs = docs;
+      // Allow editors to see all documents
+      if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'editor' && currentUser.department !== 'all') {
+        allowedDocs = docs.filter(d => d.department === 'all' || d.department === currentUser.department);
+      }
+      setTotalDocs(allowedDocs.length);
+
       const counts: Record<string, number> = {};
       for (const dept of DEPT_META) {
-        counts[dept.id] = docs.filter((d) => d.department === dept.id).length;
+        counts[dept.id] = allowedDocs.filter((d) => d.department === dept.id).length;
       }
       setDeptCounts(counts);
     }
@@ -203,7 +221,7 @@ export default function Home() {
         : 'Basis pengetahuan perusahaan terpusat untuk semua departemen'}
     >
       <HeroSection lang={lang} docCount={totalDocs} />
-      <DeptGrid lang={lang} deptCounts={deptCounts} />
+      <DeptGrid lang={lang} deptCounts={deptCounts} currentUser={currentUser} isAdmin={currentUser?.role === 'admin'} />
       {currentUser && <RecentActivity lang={lang} logs={recentLogs} />}
     </Layout>
   );

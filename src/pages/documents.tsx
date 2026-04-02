@@ -44,6 +44,7 @@ export default function DocumentsPage() {
   }, [deptFilter, statusFilter, page]);
 
   const fetchDepartments = async () => {
+
     const { data, error } = await supabase
       .from('departments')
       .select('code, name')
@@ -53,7 +54,9 @@ export default function DocumentsPage() {
       const opts: DeptOption[] = [{ value: 'all', label: 'Semua Departemen' }];
       data.forEach((d: any) => {
         if (d.code !== 'all') {
-          opts.push({ value: d.code, label: d.name });
+          if (isAdmin || isEditor || !currentUser || currentUser.department === 'all' || currentUser.department === d.code) {
+            opts.push({ value: d.code, label: d.name });
+          }
         }
       });
       setDeptOptions(opts);
@@ -62,11 +65,19 @@ export default function DocumentsPage() {
 
   const fetchDocuments = async () => {
     setLoading(true);
+
     let q = supabase
       .from('documents')
       .select('*, profiles(name)')
       .order('updated_at', { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+    // Apply strict access filter if not admin AND not editor
+    if (!isAdmin && !isEditor && currentUser) {
+      if (currentUser.department !== 'all') {
+        q = q.or(`department.eq.all,department.eq.${currentUser.department}`);
+      }
+    }
 
     if (deptFilter !== 'all') {
       q = q.eq('department', deptFilter);
@@ -125,7 +136,7 @@ export default function DocumentsPage() {
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="Cari judul atau slug..."
+            placeholder="Cari judul dokumen..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1, minWidth: '220px', padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '0.88rem', outline: 'none', fontFamily: 'inherit' }}
@@ -203,16 +214,12 @@ export default function DocumentsPage() {
                       </h3>
                       {statusBadge(doc.status)}
                     </div>
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#9ca3af', marginBottom: '0.75rem' }}>
-                      /{doc.slug}
-                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
-                        {(doc as any).profiles?.name || 'Unknown'}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                        {doc.updated_at ? timeAgo(doc.updated_at) : ''}
-                      </span>
+                      <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                        <span style={{ fontWeight: 600 }}>{(doc as any).profiles?.name || 'Unknown'}</span>
+                        <span>•</span>
+                        <span>{doc.created_at ? new Date(doc.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
+                      </div>
                     </div>
                   </div>
                 </Link>

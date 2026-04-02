@@ -2,13 +2,14 @@ import React, { useState, FormEvent } from 'react';
 import Layout from '@theme/Layout';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
   const { i18n } = useDocusaurusContext();
   const isEn = i18n.currentLocale === 'en';
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +21,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      let finalEmail = identifier;
+
+      // Jika bukan format email, cari emailnya dulu berdasarkan username atau nomor induk
+      if (!identifier.includes('@')) {
+        const { data: fetchedEmail, error: rpcError } = await supabase.rpc('get_user_email_by_identifier', { identifier });
+        if (rpcError) {
+          console.error(rpcError);
+        } else if (fetchedEmail) {
+          finalEmail = fetchedEmail;
+        }
+      }
+
+      await login(finalEmail, password);
       window.location.href = '/';
     } catch (err: any) {
       const msg = err?.message || '';
@@ -65,16 +78,16 @@ export default function LoginPage() {
             )}
 
             <div className="kms-form-group">
-              <label htmlFor="kms-email">
-                {isEn ? 'Email Address' : 'Alamat Email'}
+              <label htmlFor="kms-identifier">
+                {isEn ? 'Email / Username / Nomor Induk' : 'Email / Username / Nomor Induk'}
               </label>
               <input
-                id="kms-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="kms-identifier"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="nama@perusahaan.com"
-                autoComplete="email"
+                autoComplete="username"
                 required
                 disabled={loading}
               />
@@ -114,8 +127,8 @@ export default function LoginPage() {
             <button
               type="submit"
               className="kms-btn kms-btn--primary"
-              disabled={loading || !email || !password}
-              style={{ marginTop: '0.5rem', opacity: (loading || !email || !password) ? 0.7 : 1 }}
+              disabled={loading || !identifier || !password}
+              style={{ marginTop: '0.5rem', opacity: (loading || !identifier || !password) ? 0.7 : 1 }}
             >
               {loading ? (
                 <>{isEn ? 'Logging in...' : 'Sedang masuk...'}</>

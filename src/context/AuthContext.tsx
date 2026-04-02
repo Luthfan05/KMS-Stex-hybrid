@@ -27,6 +27,7 @@ interface AuthContextType {
   isViewer: boolean;
   canAccessDepartment: (dept: Department) => boolean;
   canEdit: boolean;
+  checkSession: () => Promise<boolean>;
 }
 
 // ── Context ────────────────────────────────────────────────
@@ -106,6 +107,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isViewer = !!currentUser;
   const canEdit = isEditor;
 
+  const checkSession = async (): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) return false;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
   const canAccessDepartment = (dept: Department): boolean => {
     if (!currentUser) return false;
     if (isAdmin) return true;
@@ -124,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isViewer,
     canAccessDepartment,
     canEdit,
+    checkSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
