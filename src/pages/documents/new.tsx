@@ -125,9 +125,9 @@ function NewDocumentForm() {
         useWebWorker: true,
         fileType: 'image/webp',
       };
-      
+
       const compressedFile = await imageCompression(file, options);
-      
+
       const fileExt = 'webp';
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -141,9 +141,9 @@ function NewDocumentForm() {
       }
 
       const { data } = supabase.storage.from('document-images').getPublicUrl(filePath);
-      
+
       const imageMarkdown = `![${file.name}](${data.publicUrl})`;
-      
+
       // Insert simply at current cursor or end
       const textarea = document.getElementById('kms-content-editor') as HTMLTextAreaElement;
       if (textarea) {
@@ -399,7 +399,7 @@ function NewDocumentForm() {
 
 export default function NewDocumentPage() {
   return (
-    <Layout title="Buat Dokumen Baru" description="Buat dokumen baru di STex KMS">
+    <Layout title="Buat Dokumen Baru" description="Buat dokumen baru di Sukuntex KMS">
       <AuthGuard requiredRole="editor">
         <NewDocumentForm />
       </AuthGuard>

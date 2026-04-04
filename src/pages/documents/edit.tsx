@@ -98,7 +98,7 @@ function EditDocumentForm() {
         if (parsed.content) setContent(parsed.content);
         if (parsed.department) setDepartment(parsed.department);
         if (parsed.status) setStatus(parsed.status);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     setLoading(false);
@@ -148,9 +148,9 @@ function EditDocumentForm() {
         useWebWorker: true,
         fileType: 'image/webp',
       };
-      
+
       const compressedFile = await imageCompression(file, options);
-      
+
       const fileExt = 'webp';
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -164,9 +164,9 @@ function EditDocumentForm() {
       }
 
       const { data } = supabase.storage.from('document-images').getPublicUrl(filePath);
-      
+
       const imageMarkdown = `![${file.name}](${data.publicUrl})`;
-      
+
       const textarea = window.document.getElementById('kms-content-editor') as HTMLTextAreaElement | null;
       if (textarea) {
         const start = textarea.selectionStart;
@@ -425,7 +425,7 @@ function EditDocumentForm() {
 
 export default function EditDocumentPage() {
   return (
-    <Layout title="Edit Dokumen" description="Edit dokumen di STex KMS">
+    <Layout title="Edit Dokumen" description="Edit dokumen di Sukuntex KMS">
       <AuthGuard requiredRole="editor">
         <EditDocumentForm />
       </AuthGuard>

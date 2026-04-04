@@ -39,14 +39,14 @@ export default function FAQPage() {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
-    if (!window.confirm('Apakah Anda yakin ingin menyembunyikan FAQ ini?')) return;
+    if (!window.confirm('Apakah Anda yakin ingin hapus FAQ ini?')) return;
 
     const { error } = await supabase.from('faq').update({ is_hidden: true }).eq('id', id);
     if (!error) {
       setEntries(prev => prev.filter(entry => entry.id !== id));
     } else {
       console.error('Error deleting FAQ:', error);
-      alert('Gagal menyembunyikan FAQ.');
+      alert('Gagal hapus FAQ.');
     }
   };
 

@@ -3,6 +3,8 @@ import Layout from '@theme/Layout';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import ThemedImage from '@theme/ThemedImage';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 export default function LoginPage() {
   const { i18n } = useDocusaurusContext();
@@ -57,14 +59,14 @@ export default function LoginPage() {
         <div className="kms-auth-card">
           {/* Logo */}
           <div className="kms-auth-logo">
-            <div style={{
-              width: 60, height: 60, borderRadius: 14,
-              background: 'linear-gradient(135deg, var(--kms-primary), #4247c4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 1rem', fontSize: '1.75rem',
-            }}>
-              KMS
-            </div>
+            <ThemedImage
+              alt="PT. Sukuntex Logo"
+              sources={{
+                light: useBaseUrl('/img/logo.svg'),
+                dark: useBaseUrl('/img/logo-dark.svg'),
+              }}
+              style={{ height: '60px', display: 'block', margin: '0 auto 1rem' }}
+            />
             <h1>PT. Sukuntex KMS</h1>
             <p>{isEn ? 'Knowledge Management System' : 'Sistem Manajemen Pengetahuan'}</p>
           </div>

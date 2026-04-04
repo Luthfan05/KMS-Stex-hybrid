@@ -2,6 +2,8 @@ import React from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import ThemedImage from '@theme/ThemedImage';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 const FEATURES = [
   {
@@ -100,14 +102,14 @@ export default function AboutPage() {
       <div className="kms-about">
         {/* Hero */}
         <div className="kms-about__hero">
-          <div style={{
-            width: 70, height: 70, borderRadius: 16,
-            background: 'linear-gradient(135deg, var(--kms-primary), var(--kms-accent))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.25rem', fontSize: '2rem',
-          }}>
-            KMS
-          </div>
+          <ThemedImage
+            alt="PT. Sukuntex Logo"
+            sources={{
+              light: useBaseUrl('/img/logo.svg'),
+              dark: useBaseUrl('/img/logo-dark.svg'),
+            }}
+            style={{ height: '70px', display: 'block', margin: '0 auto 1.25rem' }}
+          />
           <h1>{isEn ? 'About PT. Sukuntex KMS' : 'Tentang PT. Sukuntex KMS'}</h1>
           <p>
             {isEn

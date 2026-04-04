@@ -39,14 +39,14 @@ export default function DictionaryPage() {
   };
 
   const handleDelete = async (id: string, term: string) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menyembunyikan istilah "${term}"?`)) return;
+    if (!window.confirm(`Apakah Anda yakin ingin hapus istilah "${term}"?`)) return;
 
     const { error } = await supabase.from('dictionary').update({ is_hidden: true }).eq('id', id);
     if (!error) {
       setEntries(prev => prev.filter(entry => entry.id !== id));
     } else {
       console.error('Error deleting dictionary term:', error);
-      alert('Gagal menyembunyikan istilah.');
+      alert('Gagal hapus istilah.');
     }
   };
 

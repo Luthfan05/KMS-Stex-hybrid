@@ -869,7 +869,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      
+
       {/* ── TAB: Archive ── */}
       {activeTab === 'archive' && (
         <div className="kms-card">
@@ -943,8 +943,8 @@ function AdminDashboard() {
 
       <div className="kms-notice kms-notice--info" style={{ marginTop: '1.5rem' }}>
         {isEn
-          ? 'All data is fetched in real-time from Supabase PostgreSQL. All admin actions are recorded in activity_logs.'
-          : 'Semua data diambil secara real-time dari Supabase PostgreSQL. Semua tindakan admin dicatat di activity_logs.'}
+          ? 'All data is fetched in real-time from Supabase PostgreSQL. All admin actions are recorded in Log Aktivitas.'
+          : 'Semua data diambil secara real-time dari Supabase PostgreSQL. Semua tindakan admin dicatat di Activity Log.'}
       </div>
     </div>
   );
