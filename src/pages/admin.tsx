@@ -100,6 +100,40 @@ function AdminDashboard() {
   const [newFaqA, setNewFaqA] = useState('');
   const [newFaqOrder, setNewFaqOrder] = useState<number>(1);
 
+  // Load drafts on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const dTerm = localStorage.getItem('kms_draft_dict_term');
+      if (dTerm) setNewDictTerm(dTerm);
+      const dFull = localStorage.getItem('kms_draft_dict_full');
+      if (dFull) setNewDictFull(dFull);
+      const dDesc = localStorage.getItem('kms_draft_dict_desc');
+      if (dDesc) setNewDictDesc(dDesc);
+
+      const fQ = localStorage.getItem('kms_draft_faq_q');
+      if (fQ) setNewFaqQ(fQ);
+      const fA = localStorage.getItem('kms_draft_faq_a');
+      if (fA) setNewFaqA(fA);
+    }
+  }, []);
+
+  // Save drafts on change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (newDictTerm) localStorage.setItem('kms_draft_dict_term', newDictTerm);
+      if (newDictFull) localStorage.setItem('kms_draft_dict_full', newDictFull);
+      if (newDictDesc) localStorage.setItem('kms_draft_dict_desc', newDictDesc);
+    }
+  }, [newDictTerm, newDictFull, newDictDesc]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (newFaqQ) localStorage.setItem('kms_draft_faq_q', newFaqQ);
+      if (newFaqA) localStorage.setItem('kms_draft_faq_a', newFaqA);
+    }
+  }, [newFaqQ, newFaqA]);
+
+
   // Add User State
   const [showAddUser, setShowAddUser] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -270,7 +304,14 @@ function AdminDashboard() {
     });
     if (!error) {
       setNewDictTerm(''); setNewDictFull(''); setNewDictDesc('');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('kms_draft_dict_term');
+        localStorage.removeItem('kms_draft_dict_full');
+        localStorage.removeItem('kms_draft_dict_desc');
+      }
       await fetchDictionary();
+    } else {
+      alert('Gagal menambah istilah (koneksi terganggu). Draft anda masih aman tersimpan (auto-save).');
     }
     setSaving(false);
   };
@@ -296,8 +337,13 @@ function AdminDashboard() {
     });
     if (!error) {
       setNewFaqQ(''); setNewFaqA('');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('kms_draft_faq_q');
+        localStorage.removeItem('kms_draft_faq_a');
+      }
       await fetchFAQ();
     } else {
+      alert('Gagal menambah FAQ (koneksi terganggu). Draft anda masih aman tersimpan (auto-save).');
       console.error('Error adding FAQ:', error);
       alert('Gagal menambahkan FAQ.');
     }

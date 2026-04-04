@@ -38,8 +38,8 @@ function HeroSection({ lang, docCount }: { lang: string; docCount: number }) {
       </h1>
       <p className="kms-hero__subtitle">
         {isEn
-          ? `Access SOPs, policies, guidelines, and company procedures — fast, organized, and always up-to-date. ${docCount > 0 ? `(${docCount} documents available)` : ''}`
-          : `Akses SOP, kebijakan, panduan, dan prosedur perusahaan — cepat, terorganisir, dan selalu terkini. ${docCount > 0 ? `(${docCount} dokumen tersedia)` : ''}`}
+          ? `Access SOPs, policies, guidelines, and company procedures — fast, organized, and always up-to-date.`
+          : `Akses SOP, kebijakan, panduan, dan prosedur perusahaan — cepat, terorganisir, dan selalu terkini.`}
       </p>
       <form onSubmit={handleSearch} className="kms-hero__search" style={{ position: 'relative' }}>
         <input
