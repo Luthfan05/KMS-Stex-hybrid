@@ -103,8 +103,8 @@ export default function DocumentsPage() {
   const statusBadge = (status: string) => {
     const map: Record<string, { bg: string; color: string; label: string }> = {
       published: { bg: '#d1fae5', color: '#065f46', label: 'Terbit' },
-      draft:     { bg: '#fef3c7', color: '#92400e', label: 'Draft' },
-      review:    { bg: '#dbeafe', color: '#1e40af', label: 'Review' },
+      draft: { bg: '#fef3c7', color: '#92400e', label: 'Draft' },
+      review: { bg: '#dbeafe', color: '#1e40af', label: 'Review' },
     };
     const s = map[status] || { bg: '#f3f4f6', color: '#6b7280', label: status };
     return (
@@ -115,7 +115,7 @@ export default function DocumentsPage() {
   };
 
   return (
-    <Layout title="Daftar Dokumen" description="Semua dokumen KMS STex">
+    <Layout title="Daftar Dokumen" description="Semua dokumen KMS PT. Sukuntex">
       <div className="kms-dashboard">
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>

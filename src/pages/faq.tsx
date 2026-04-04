@@ -27,6 +27,7 @@ export default function FAQPage() {
     const { data, error } = await supabase
       .from('faq')
       .select('*')
+      .is('is_hidden', false)
       .order('sort_order', { ascending: true });
 
     if (error) {
@@ -38,10 +39,15 @@ export default function FAQPage() {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
-    if (!window.confirm('Apakah Anda yakin ingin menghapus FAQ')) return;
+    if (!window.confirm('Apakah Anda yakin ingin menyembunyikan FAQ ini?')) return;
 
-    // Hanya hilangkan dari Frontend (State) sesuai permintaan
-    setEntries(prev => prev.filter(entry => entry.id !== id));
+    const { error } = await supabase.from('faq').update({ is_hidden: true }).eq('id', id);
+    if (!error) {
+      setEntries(prev => prev.filter(entry => entry.id !== id));
+    } else {
+      console.error('Error deleting FAQ:', error);
+      alert('Gagal menyembunyikan FAQ.');
+    }
   };
 
   return (
@@ -53,7 +59,7 @@ export default function FAQPage() {
               Pertanyaan yang Sering Diajukan
             </h1>
             <p style={{ color: '#6b7280', fontSize: '1rem', maxWidth: '500px', margin: '0 auto' }}>
-              Temukan jawaban untuk pertanyaan yang sering diajukan tentang STex KMS.
+              Temukan jawaban untuk pertanyaan yang sering diajukan tentang PT. Sukuntex KMS.
             </p>
           </div>
 

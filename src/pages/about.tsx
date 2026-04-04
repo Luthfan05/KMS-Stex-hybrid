@@ -10,6 +10,7 @@ const FEATURES = [
     desc: 'Buat, edit, dan kelola semua dokumen perusahaan dalam satu platform terpusat.',
     descEn: 'Create, edit, and manage all company documents in one centralized platform.',
   },
+  /*
   {
     title: 'Per Departemen',
     titleEn: 'Department-Based',
@@ -22,6 +23,7 @@ const FEATURES = [
     desc: 'Setiap perubahan tercatat. Lihat siapa yang mengubah apa dan kapan.',
     descEn: 'Every change is tracked. See who changed what and when.',
   },
+  */
   {
     title: 'Kontrol Akses',
     titleEn: 'Access Control',
@@ -34,6 +36,7 @@ const FEATURES = [
     desc: 'Komentar, balasan, dan feedback langsung di setiap dokumen.',
     descEn: 'Comments, replies, and feedback directly on each document.',
   },
+  /*
   {
     title: 'Bilingual',
     titleEn: 'Bilingual',
@@ -52,11 +55,12 @@ const FEATURES = [
     desc: 'Pantau semua aktivitas pengguna: login, view, edit, dan komentar.',
     descEn: 'Monitor all user activity: logins, views, edits, and comments.',
   },
+  */
   {
     title: 'Real-time',
     titleEn: 'Real-time',
-    desc: 'Data selalu terkini dari database Supabase PostgreSQL.',
-    descEn: 'Data is always up-to-date from the Supabase PostgreSQL database.',
+    desc: 'Data selalu terkini dari database.',
+    descEn: 'Data is always up-to-date from the database.',
   },
 ];
 
@@ -79,8 +83,8 @@ const ROLES = [
     role: 'Viewer',
     color: '#166534',
     bg: '#f0fdf4',
-    perms: ['Membaca dokumen yang tersedia', 'Memberi feedback', 'Menambah komentar', 'Melihat riwayat versi'],
-    permsEn: ['Read available documents', 'Give feedback', 'Add comments', 'View version history'],
+    perms: ['Membaca dokumen yang tersedia', 'Memberi feedback', 'Menambah komentar'],
+    permsEn: ['Read available documents', 'Give feedback', 'Add comments'],
   },
 ];
 
@@ -91,7 +95,7 @@ export default function AboutPage() {
   return (
     <Layout
       title={isEn ? 'About KMS' : 'Tentang KMS'}
-      description={isEn ? 'About the STex Knowledge Management System' : 'Tentang Sistem Manajemen Pengetahuan STex'}
+      description={isEn ? 'About the PT. Sukuntex Knowledge Management System' : 'Tentang Sistem Manajemen Pengetahuan PT. Sukuntex'}
     >
       <div className="kms-about">
         {/* Hero */}
@@ -104,11 +108,11 @@ export default function AboutPage() {
           }}>
             KMS
           </div>
-          <h1>{isEn ? 'About STex KMS' : 'Tentang STex KMS'}</h1>
+          <h1>{isEn ? 'About PT. Sukuntex KMS' : 'Tentang PT. Sukuntex KMS'}</h1>
           <p>
             {isEn
-              ? 'A centralized Knowledge Management System built for efficient company-wide document management.'
-              : 'Sistem Manajemen Pengetahuan terpusat yang dibangun untuk pengelolaan dokumen perusahaan yang efisien.'}
+              ? 'PT. Sukuntex KMS is a Knowledge Management System used as a centralized company documentation. It stores all important information, from standard operating procedures (SOPs) and work manuals to operational records.'
+              : 'PT. Sukuntex KMS adalah Knowledge Management System yang digunakan sebagai pusat dokumentasi perusahaan. Semua informasi penting mulai dari SOP, panduan kerja, hingga catatan operasional.'}
           </p>
         </div>
 
@@ -118,8 +122,8 @@ export default function AboutPage() {
         </h2>
         <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
           {isEn
-            ? 'Everything you need for company knowledge management in one platform.'
-            : 'Semua yang Anda butuhkan untuk manajemen pengetahuan perusahaan dalam satu platform.'}
+            ? 'Everything you need for company knowledge management in one place.'
+            : 'Semua kebutuhan manajemen pengetahuan dalam satu platform.'}
         </p>
 
         <div className="kms-feature-grid">
@@ -133,12 +137,12 @@ export default function AboutPage() {
 
         {/* Roles */}
         <h2 style={{ textAlign: 'center', fontSize: '1.3rem', marginTop: '3rem', marginBottom: '0.5rem' }}>
-          {isEn ? 'User Roles' : 'Peran Pengguna'}
+          {isEn ? 'User Roles' : 'Tingkatan Pengguna'}
         </h2>
         <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
           {isEn
             ? 'Three levels of access control to keep your documents secure.'
-            : 'Tiga level kontrol akses untuk menjaga keamanan dokumen Anda.'}
+            : 'Hak akses dibagi jadi tiga supaya tetap aman dan terkontrol.'}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem', margin: '1.5rem 0' }}>
@@ -156,31 +160,6 @@ export default function AboutPage() {
           ))}
         </div>
 
-        {/* Tech Stack */}
-        <div className="kms-card kms-card--static" style={{ marginTop: '2.5rem', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--kms-primary)' }}>
-            {isEn ? 'Technology Stack' : 'Teknologi yang Digunakan'}
-          </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
-            {[
-              { name: 'Docusaurus' },
-              { name: 'React' },
-              { name: 'TypeScript' },
-              { name: 'Supabase' },
-              { name: 'PostgreSQL' },
-            ].map((tech) => (
-              <span key={tech.name} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '8px 16px', background: 'var(--kms-primary-light)',
-                border: '1px solid var(--ifm-toc-border-color)',
-                borderRadius: '8px', fontSize: '0.85rem', fontWeight: 500, color: 'var(--kms-primary)',
-              }}>
-                {tech.name}
-              </span>
-            ))}
-          </div>
-        </div>
-
         {/* CTA */}
         <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
           <Link to="/documents" className="kms-btn kms-btn--accent" style={{ width: 'auto', padding: '12px 32px', display: 'inline-flex' }}>
@@ -191,8 +170,8 @@ export default function AboutPage() {
         {/* Footer note */}
         <div className="kms-notice kms-notice--info" style={{ marginTop: '2rem' }}>
           {isEn
-            ? 'STex KMS is an internal system for authorized company personnel. Contact your administrator for access.'
-            : 'STex KMS adalah sistem internal untuk karyawan perusahaan yang berwenang. Hubungi administrator Anda untuk mendapatkan akses.'}
+            ? 'PT. Sukuntex KMS is an internal system for authorized company personnel. Contact Human Resources Department for access.'
+            : 'PT. Sukuntex KMS adalah sistem internal untuk karyawan perusahaan yang berwenang. Hubungi HRD untuk mendapatkan akses.'}
         </div>
       </div>
     </Layout>

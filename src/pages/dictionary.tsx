@@ -28,6 +28,7 @@ export default function DictionaryPage() {
     const { data, error } = await supabase
       .from('dictionary')
       .select('*')
+      .is('is_hidden', false)
       .order('term', { ascending: true });
 
     if (error) {
@@ -38,10 +39,15 @@ export default function DictionaryPage() {
   };
 
   const handleDelete = async (id: string, term: string) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus istilah "${term}"?`)) return;
+    if (!window.confirm(`Apakah Anda yakin ingin menyembunyikan istilah "${term}"?`)) return;
 
-    // Hanya hilangkan dari Frontend (State) sesuai permintaan
-    setEntries(prev => prev.filter(entry => entry.id !== id));
+    const { error } = await supabase.from('dictionary').update({ is_hidden: true }).eq('id', id);
+    if (!error) {
+      setEntries(prev => prev.filter(entry => entry.id !== id));
+    } else {
+      console.error('Error deleting dictionary term:', error);
+      alert('Gagal menyembunyikan istilah.');
+    }
   };
 
   const filtered = entries.filter((item) => {
@@ -61,7 +67,7 @@ export default function DictionaryPage() {
               Kamus Istilah Perusahaan
             </h1>
             <p style={{ color: '#6b7280', fontSize: '1rem', maxWidth: '500px', margin: '0 auto' }}>
-              Daftar istilah, singkatan, dan definisi internal yang digunakan di STex.
+              Daftar istilah, singkatan, dan definisi internal yang digunakan di PT. Sukuntex.
             </p>
           </div>
 

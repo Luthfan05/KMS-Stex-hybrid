@@ -130,8 +130,8 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff !important;
   transform: translateY(-1px);
 }
-/* Admin button - hidden by default, shown via JS */
-.navbar-admin-btn {
+/* Admin and Editor button - hidden by default, shown via JS */
+.navbar-admin-btn, .navbar-editor-btn {
   font-size: 1.1rem !important;
   padding: 4px 10px !important;
   transition: opacity 0.2s ease !important;
@@ -141,11 +141,16 @@ h1, h2, h3, h4, h5, h6 {
 [data-kms-auth="logged-in"] .navbar-login-btn {
   display: none !important;
 }
-[data-kms-auth="logged-out"] .navbar-admin-btn {
+[data-kms-auth="logged-out"] .navbar-admin-btn,
+[data-kms-auth="logged-out"] .navbar-editor-btn {
   display: none !important;
 }
 /* Only show admin button for admin role */
 [data-kms-auth="logged-in"]:not([data-kms-role="admin"]) .navbar-admin-btn {
+  display: none !important;
+}
+/* Only show editor button for editor role (hide from admin) */
+[data-kms-auth="logged-in"]:not([data-kms-role="editor"]) .navbar-editor-btn {
   display: none !important;
 }
 /* User menu injected by Root.tsx */

@@ -63,7 +63,7 @@ export default function LoginPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1rem', fontSize: '1.75rem',
             }}>
-              Sike
+              KMS
             </div>
             <h1>PT. Sukuntex KMS</h1>
             <p>{isEn ? 'Knowledge Management System' : 'Sistem Manajemen Pengetahuan'}</p>
@@ -152,10 +152,6 @@ export default function LoginPage() {
               : 'Sistem ini hanya untuk karyawan perusahaan yang berwenang.'}
           </div>
 
-          {/* Supabase badge */}
-          <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#d1d5db', marginTop: '1.25rem', marginBottom: 0 }}>
-            Powered by Supabase Auth
-          </p>
         </div>
       </div>
     </Layout>

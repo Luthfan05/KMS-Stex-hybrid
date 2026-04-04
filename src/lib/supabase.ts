@@ -17,7 +17,24 @@ const fetchWithRetry: typeof fetch = async (url, options) => {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await fetch(url, options);
-      // Memicu retry jika mendapatkan HTTP error 5xx (Server Error) atau 429 (Rate Limit)
+      
+      // Auto-refresh token jika token expired / ditolak setelah idle lama
+      if (!response.ok && (response.status === 401 || response.status === 403)) {
+        if (i === 0) {
+          console.warn("[KMS] Sesi ditolak (401/403). Mencoba me-refresh JWT otomatis...");
+          const { data } = await supabase.auth.refreshSession();
+          if (data?.session?.access_token) {
+            // Timpa header token lama dengan token baru menggunakan standard Headers API
+            const headers = new Headers(options?.headers);
+            headers.set('Authorization', `Bearer ${data.session.access_token}`);
+            options = { ...options, headers };
+            console.log("[KMS] JWT Token berhasil di-refresh! Mengulang request...");
+          }
+        }
+        throw new Error(`Auth error: ${response.status}`);
+      }
+
+      // Memicu retry jika HTTP error 5xx (Server Error) atau 429 (Rate Limit)
       if (!response.ok && (response.status >= 500 || response.status === 429)) {
         throw new Error(`Server error: ${response.status}`);
       }

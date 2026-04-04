@@ -73,6 +73,7 @@ const config: Config = {
         { to: '/dictionary', label: 'Dictionary', position: 'left' },
         { to: '/faq', label: 'FAQ', position: 'left' },
         { to: '/about', label: 'Tentang KMS', position: 'left' },
+        { to: '/editor', label: '⚙️', position: 'right', className: 'navbar-editor-btn' },
         { to: '/admin', label: '⚙️', position: 'right', className: 'navbar-admin-btn' },
         { to: '/login', label: 'Masuk', position: 'right', className: 'navbar-login-btn' },
       ],

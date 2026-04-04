@@ -39,7 +39,7 @@ const deptLabel = (d: string | null) => {
   return d.toUpperCase();
 };
 
-function AdminDashboard() {
+function EditorDashboard() {
   const { i18n } = useDocusaurusContext();
   const isEn = i18n.currentLocale === 'en';
   const { currentUser } = useAuth();
@@ -55,7 +55,7 @@ function AdminDashboard() {
   const [editRole, setEditRole] = useState('');
   const [editDept, setEditDept] = useState('');
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'documents' | 'logs' | 'dictionary' | 'faq' | 'archive'>('users');
+  const [activeTab, setActiveTab] = useState<'documents' | 'logs' | 'dictionary' | 'faq' | 'archive'>('documents');
 
   const [dictionary, setDictionary] = useState<DictionaryEntry[]>([]);
   const [faqs, setFaqs] = useState<FAQEntry[]>([]);
@@ -339,20 +339,16 @@ function AdminDashboard() {
     <div className="kms-dashboard">
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.6rem', marginBottom: '0.25rem' }}>
-          {isEn ? 'Admin Dashboard' : 'Dashboard Admin'}
+          {isEn ? 'Editor Dashboard' : 'Dashboard Editor'}
         </h1>
         <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
-          {isEn ? 'Manage users, roles, documents, and activity.' : 'Kelola pengguna, peran, dokumen, dan aktivitas.'}
+          {isEn ? 'Kelola dokumen, kamus, dan FAQ.' : 'Kelola dokumen, kamus, dan FAQ.'}
         </p>
       </div>
 
       {/* Stats */}
       <div className="kms-stats-grid">
         {[
-          { label: isEn ? 'Total Users' : 'Total Pengguna', value: stats.total, color: 'var(--kms-primary)' },
-          { label: 'Admin', value: stats.admin, color: '#92400e' },
-          { label: 'Editor', value: stats.editor, color: '#1e40af' },
-          { label: 'Viewer', value: stats.viewer, color: '#166534' },
           { label: isEn ? 'Documents' : 'Dokumen', value: stats.docs, color: 'var(--kms-primary)' },
           { label: isEn ? 'Published' : 'Terbit', value: stats.published, color: '#059669' },
           { label: 'Draft', value: stats.draft, color: '#d97706' },
@@ -370,8 +366,7 @@ function AdminDashboard() {
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--ifm-toc-border-color)', paddingBottom: 0 }}>
         {[
-          { key: 'users', label: isEn ? 'Users' : 'Pengguna' },
-          { key: 'documents', label: isEn ? 'Documents' : 'Dokumen' },
+                    { key: 'documents', label: isEn ? 'Documents' : 'Dokumen' },
           { key: 'logs', label: isEn ? 'Activity Log' : 'Log Aktivitas' },
           { key: 'dictionary', label: isEn ? 'Dictionary' : 'Kamus' },
           { key: 'faq', label: 'FAQ' },
@@ -398,218 +393,6 @@ function AdminDashboard() {
           </button>
         ))}
       </div>
-
-      {/* ── TAB: Users ── */}
-      {activeTab === 'users' && (
-        <div className="kms-card">
-          {/* Header & Add Button */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, flex: 1 }}>{isEn ? 'User Management' : 'Manajemen Pengguna'}</h3>
-            <button
-              onClick={() => {
-                setShowAddUser(!showAddUser);
-                if (!showAddUser && !newUserRole && roles.length > 0) {
-                  setNewUserRole(roles.find(r => r.name === 'viewer')?.id || roles[0].id);
-                }
-              }}
-              className="kms-btn kms-btn--accent"
-              style={{ width: 'auto', padding: '6px 14px', fontSize: '0.85rem' }}
-            >
-              {showAddUser ? (isEn ? 'Cancel' : 'Batal') : (isEn ? '+ New User' : '+ Pengguna Baru')}
-            </button>
-          </div>
-
-          {/* Add User Form */}
-          {showAddUser && (
-            <div style={{ background: 'var(--ifm-background-surface-color)', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid var(--ifm-toc-border-color)' }}>
-              <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.05rem', color: 'var(--kms-primary)' }}>
-                {isEn ? 'Create New Account' : 'Buat Akun Baru'}
-              </h4>
-
-              {addUserError && (
-                <div className="kms-notice kms-notice--lock" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-                  {addUserError}
-                </div>
-              )}
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-                <div className="kms-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Full Name *' : 'Nama Lengkap *'}</label>
-                  <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
-                </div>
-                <div className="kms-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Username' : 'Username'}</label>
-                  <input type="text" value={newUserUsername} onChange={e => setNewUserUsername(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
-                </div>
-                <div className="kms-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Email Address *' : 'Alamat Email *'}</label>
-                  <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
-                </div>
-                <div className="kms-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Nomor Induk' : 'Nomor Induk'}</label>
-                  <input type="text" value={newUserNomor} onChange={e => setNewUserNomor(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
-                </div>
-                <div className="kms-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Password *' : 'Kata Sandi *'}</label>
-                  <input type="password" value={newUserPass} onChange={e => setNewUserPass(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }} />
-                </div>
-                <div className="kms-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Role *' : 'Peran *'}</label>
-                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }}>
-                    <option value="" disabled>{isEn ? 'Select Role' : 'Pilih Peran'}</option>
-                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-                </div>
-                <div className="kms-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>{isEn ? 'Department *' : 'Departemen *'}</label>
-                  <select value={newUserDept} onChange={e => setNewUserDept(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--ifm-toc-border-color)', borderRadius: '6px', fontSize: '0.85rem', background: 'transparent', color: 'inherit', width: '100%' }}>
-                    {departments.map((d) => <option key={d} value={d}>{deptLabel(d)}</option>)}
-                  </select>
-                </div>
-              </div>
-              <button
-                onClick={handleAddUser}
-                disabled={saving || !newUserEmail || !newUserPass || !newUserName || !newUserRole}
-                className="kms-btn kms-btn--primary"
-                style={{ width: 'auto', padding: '8px 18px', fontSize: '0.85rem' }}
-              >
-                {saving ? '...' : isEn ? 'Create User' : 'Buat Pengguna'}
-              </button>
-            </div>
-          )}
-
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder={isEn ? 'Search by name or nomor induk...' : 'Cari nama atau nomor induk...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: 1, minWidth: '200px', padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
-            />
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              style={{ padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
-            >
-              <option value="all">{isEn ? 'All Roles' : 'Semua Peran'}</option>
-              {roles.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
-            </select>
-          </div>
-
-          {/* Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--ifm-toc-border-color)' }}>
-                  {[isEn ? 'Name' : 'Nama', isEn ? 'ID' : 'Nomor Induk', isEn ? 'Role' : 'Peran', isEn ? 'Department' : 'Departemen', isEn ? 'Last Login' : 'Login Terakhir', 'Status', isEn ? 'Joined' : 'Bergabung', ''].map((h) => (
-                    <th key={h} style={{ textAlign: 'left', padding: '0.6rem 0.75rem', color: '#6b7280', fontWeight: 600, fontSize: '0.78rem', textTransform: 'uppercase' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loadingData ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>Memuat data...</td></tr>
-                ) : filtered.map((user) => {
-                  const roleName = (user as any).roles?.name || 'viewer';
-                  const isEditing = editingUser === user.id;
-                  return (
-                    <tr key={user.id} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ifm-background-surface-color)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '0.75rem' }}>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>{user.name || '—'}</div>
-                      </td>
-                      <td style={{ padding: '0.75rem', color: '#6b7280', fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                        {user.nomor_induk || '—'}
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        {isEditing ? (
-                          <select
-                            value={editRole}
-                            onChange={(e) => setEditRole(e.target.value)}
-                            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.82rem', fontFamily: 'inherit' }}
-                          >
-                            {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                          </select>
-                        ) : (
-                          <span className={`kms-badge ${roleColors[roleName] || 'kms-badge--viewer'}`}>
-                            {roleIcons[roleName] || '👁️'} {roleName}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        {isEditing ? (
-                          <select
-                            value={editDept}
-                            onChange={(e) => setEditDept(e.target.value)}
-                            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.82rem', fontFamily: 'inherit' }}
-                          >
-                            {departments.map((d) => <option key={d} value={d}>{deptLabel(d)}</option>)}
-                          </select>
-                        ) : (
-                          <span className="kms-tag kms-tag--dept" style={{ cursor: 'default', fontSize: '0.75rem' }}>
-                            {deptLabel(user.department)}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
-                        {(user as any).last_login ? timeAgo((user as any).last_login) : '—'}
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <span style={{
-                          display: 'inline-block', padding: '2px 8px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600,
-                          background: (user as any).status === 'active' ? '#d1fae5' : '#fef3c7',
-                          color: (user as any).status === 'active' ? '#065f46' : '#92400e',
-                        }}>
-                          {(user as any).status || 'active'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
-                        {user.created_at ? timeAgo(user.created_at) : '—'}
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        {isEditing ? (
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              onClick={() => saveUser(user.id)}
-                              disabled={saving}
-                              style={{ background: 'var(--kms-accent)', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit' }}
-                            >
-                              {saving ? '…' : '✓ Simpan'}
-                            </button>
-                            <button
-                              onClick={() => setEditingUser(null)}
-                              style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit' }}
-                            >
-                              Batal
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => startEdit(user)}
-                            style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--kms-primary)', fontFamily: 'inherit' }}
-                          >
-                            {isEn ? 'Edit' : 'Ubah'}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {!loadingData && filtered.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem', margin: 0 }}>
-                {isEn ? 'No users found.' : 'Tidak ada pengguna ditemukan.'}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── TAB: Documents ── */}
       {activeTab === 'documents' && (
@@ -950,14 +733,28 @@ function AdminDashboard() {
   );
 }
 
-export default function AdminPage() {
+export default function EditorPage() {
   const { i18n } = useDocusaurusContext();
   const isEn = i18n.currentLocale === 'en';
+  const { isAdmin } = useAuth();
 
   return (
-    <Layout title={isEn ? 'Admin Dashboard' : 'Dashboard Admin'}>
-      <AuthGuard requiredRole="admin">
-        <AdminDashboard />
+    <Layout title={isEn ? 'Editor Dashboard' : 'Dashboard Editor'}>
+      <AuthGuard requiredRole="editor">
+        {isAdmin ? (
+          <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚫</div>
+            <h2 style={{ color: 'var(--kms-danger)' }}>Akses Ditolak</h2>
+            <p style={{ color: '#6b7280', maxWidth: '400px', margin: '0 auto 1rem' }}>
+              Halaman ini dikhususkan untuk pengguna dengan peran Editor, bukan Administrator.
+            </p>
+            <a href="/admin" className="kms-btn kms-btn--primary" style={{ width: 'auto', padding: '8px 20px' }}>
+              Ke Dashboard Admin
+            </a>
+          </div>
+        ) : (
+          <EditorDashboard />
+        )}
       </AuthGuard>
     </Layout>
   );
