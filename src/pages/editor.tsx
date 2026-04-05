@@ -56,6 +56,21 @@ function EditorDashboard() {
   const [editDept, setEditDept] = useState('');
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'documents' | 'logs' | 'dictionary' | 'faq' | 'archive'>('documents');
+  const [hasHydratedTab, setHasHydratedTab] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kms_editor_tab') as any;
+      if (saved) setActiveTab(saved);
+      setHasHydratedTab(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasHydratedTab && typeof window !== 'undefined') {
+      localStorage.setItem('kms_editor_tab', activeTab);
+    }
+  }, [activeTab, hasHydratedTab]);
 
   const [dictionary, setDictionary] = useState<DictionaryEntry[]>([]);
   const [faqs, setFaqs] = useState<FAQEntry[]>([]);
@@ -94,11 +109,19 @@ function EditorDashboard() {
   const [newDictTerm, setNewDictTerm] = useState('');
   const [newDictFull, setNewDictFull] = useState('');
   const [newDictDesc, setNewDictDesc] = useState('');
+  const [editingDict, setEditingDict] = useState<string | null>(null);
+  const [editDictTerm, setEditDictTerm] = useState('');
+  const [editDictFull, setEditDictFull] = useState('');
+  const [editDictDesc, setEditDictDesc] = useState('');
 
   // FAQ state
   const [newFaqQ, setNewFaqQ] = useState('');
   const [newFaqA, setNewFaqA] = useState('');
   const [newFaqOrder, setNewFaqOrder] = useState<number>(1);
+  const [editingFaq, setEditingFaq] = useState<string | null>(null);
+  const [editFaqQ, setEditFaqQ] = useState('');
+  const [editFaqA, setEditFaqA] = useState('');
+  const [editFaqOrder, setEditFaqOrder] = useState<number>(1);
 
   // Load drafts on mount
   useEffect(() => {
@@ -361,6 +384,74 @@ function EditorDashboard() {
     }
   };
 
+  const startEditDict = (d: DictionaryEntry) => {
+    setEditingDict(d.id);
+    setEditDictTerm(d.term);
+    setEditDictFull(d.full_form);
+    setEditDictDesc(d.description);
+  };
+  const saveDict = async (id: string) => {
+    setSaving(true);
+    const { error } = await supabase.from('dictionary').update({
+      term: editDictTerm,
+      full_form: editDictFull,
+      description: editDictDesc,
+    }).eq('id', id);
+    if (!error) {
+      await fetchDictionary();
+    } else {
+      alert('Gagal menyimpan perubahan.');
+    }
+    setSaving(false);
+    setEditingDict(null);
+  };
+
+  const startEditFaq = (f: FAQEntry) => {
+    setEditingFaq(f.id);
+    setEditFaqQ(f.question);
+    setEditFaqA(f.answer);
+    setEditFaqOrder(f.sort_order);
+  };
+  const saveFaq = async (id: string) => {
+    setSaving(true);
+    const { error } = await supabase.from('faq').update({
+      question: editFaqQ,
+      answer: editFaqA,
+      sort_order: editFaqOrder,
+    }).eq('id', id);
+    if (!error) {
+      await fetchFAQ();
+    } else {
+      alert('Gagal menyimpan perubahan.');
+    }
+    setSaving(false);
+    setEditingFaq(null);
+  };
+
+  const deleteDocument = async (id: string, title: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus dokumen "${title}"?`)) return;
+    setSaving(true);
+    
+    await supabase.from('activity_logs').insert({
+      user_id: currentUser?.id,
+      action: 'delete_document',
+      document_id: id,
+    });
+    
+    const { error } = await supabase.from('documents').delete().eq('id', id);
+    
+    if (!error) {
+      setDocuments(prev => prev.filter(d => d.id !== id));
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`kms_edit_doc_draft_${id}`);
+      }
+    } else {
+      console.error('Error deleting document:', error);
+      alert('Gagal menghapus dokumen.');
+    }
+    setSaving(false);
+  };
+
   const filtered = users.filter((u) => {
     const matchSearch =
       (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -487,12 +578,21 @@ function EditorDashboard() {
                       {doc.updated_at ? timeAgo(doc.updated_at) : '—'}
                     </td>
                     <td style={{ padding: '0.75rem' }}>
-                      <a
-                        href={`/document?slug=${doc.slug}`}
-                        style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--kms-primary)', fontFamily: 'inherit', textDecoration: 'none' }}
-                      >
-                        {isEn ? 'View' : 'Lihat'}
-                      </a>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <a
+                          href={`/document?slug=${doc.slug}`}
+                          style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--kms-primary)', fontFamily: 'inherit', textDecoration: 'none' }}
+                        >
+                          {isEn ? 'View' : 'Lihat'}
+                        </a>
+                        <button
+                          onClick={() => deleteDocument(doc.id, doc.title)}
+                          disabled={saving}
+                          style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', cursor: 'pointer', color: '#dc2626', fontFamily: 'inherit' }}
+                        >
+                          {isEn ? 'Delete' : 'Hapus'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -604,13 +704,39 @@ function EditorDashboard() {
               <tbody>
                 {dictionary.map(d => (
                   <tr key={d.id} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{d.term}</td>
-                    <td style={{ padding: '0.75rem', color: '#6b7280' }}>{d.full_form}</td>
-                    <td style={{ padding: '0.75rem', color: '#6b7280', maxWidth: '300px' }}>{d.description}</td>
+                    <td style={{ padding: '0.75rem' }}>
+                      {editingDict === d.id ? (
+                        <input type="text" value={editDictTerm} onChange={(e) => setEditDictTerm(e.target.value)} style={{ padding: '4px', width: '100%' }} />
+                      ) : (
+                        <span style={{ fontWeight: 600 }}>{d.term}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.75rem' }}>
+                      {editingDict === d.id ? (
+                        <input type="text" value={editDictFull} onChange={(e) => setEditDictFull(e.target.value)} style={{ padding: '4px', width: '100%' }} />
+                      ) : (
+                        <span style={{ color: '#6b7280' }}>{d.full_form}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.75rem', maxWidth: '300px' }}>
+                      {editingDict === d.id ? (
+                        <textarea value={editDictDesc} onChange={(e) => setEditDictDesc(e.target.value)} rows={2} style={{ padding: '4px', width: '100%', resize: 'vertical' }} />
+                      ) : (
+                        <span style={{ color: '#6b7280' }}>{d.description}</span>
+                      )}
+                    </td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button onClick={() => deleteDictionary(d.id, d.term)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        {isEn ? 'Delete' : 'Hapus'}
-                      </button>
+                      {editingDict === d.id ? (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button onClick={() => saveDict(d.id)} disabled={saving} style={{ background: 'var(--kms-accent)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.8rem' }}>Simpan</button>
+                          <button onClick={() => setEditingDict(null)} style={{ background: 'none', border: '1px solid #ccc', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.8rem' }}>Batal</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button onClick={() => startEditDict(d)} style={{ background: 'none', border: 'none', color: 'var(--kms-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>Edit</button>
+                          <button onClick={() => deleteDictionary(d.id, d.term)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>{isEn ? 'Delete' : 'Hapus'}</button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -677,15 +803,38 @@ function EditorDashboard() {
               <tbody>
                 {faqs.map(f => (
                   <tr key={f.id} style={{ borderBottom: '1px solid var(--ifm-toc-border-color)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 600, textAlign: 'center' }}>{f.sort_order}</td>
+                    <td style={{ padding: '0.75rem', fontWeight: 600, textAlign: 'center' }}>
+                      {editingFaq === f.id ? (
+                        <input type="number" value={editFaqOrder} onChange={(e) => setEditFaqOrder(Number(e.target.value) || 0)} style={{ width: '60px', padding: '4px' }} />
+                      ) : (
+                        f.sort_order
+                      )}
+                    </td>
                     <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--ifm-color-emphasis-900)', marginBottom: '0.25rem' }}>{f.question}</div>
-                      <div style={{ color: '#6b7280', fontSize: '0.82rem' }}>{f.answer}</div>
+                      {editingFaq === f.id ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <input type="text" value={editFaqQ} onChange={(e) => setEditFaqQ(e.target.value)} style={{ padding: '4px', width: '100%' }} />
+                          <textarea value={editFaqA} onChange={(e) => setEditFaqA(e.target.value)} style={{ padding: '4px', width: '100%' }} rows={2} />
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ fontWeight: 600, color: 'var(--ifm-color-emphasis-900)', marginBottom: '0.25rem' }}>{f.question}</div>
+                          <div style={{ color: '#6b7280', fontSize: '0.82rem' }}>{f.answer}</div>
+                        </>
+                      )}
                     </td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button onClick={() => deleteFaq(f.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        {isEn ? 'Delete' : 'Hapus'}
-                      </button>
+                      {editingFaq === f.id ? (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button onClick={() => saveFaq(f.id)} disabled={saving} style={{ background: 'var(--kms-accent)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.8rem' }}>Simpan</button>
+                          <button onClick={() => setEditingFaq(null)} style={{ background: 'none', border: '1px solid #ccc', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.8rem' }}>Batal</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button onClick={() => startEditFaq(f)} style={{ background: 'none', border: 'none', color: 'var(--kms-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>Edit</button>
+                          <button onClick={() => deleteFaq(f.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>{isEn ? 'Delete' : 'Hapus'}</button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
@@ -91,18 +91,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Proactively refresh or re-sync session when tab becomes visible again
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        supabase.auth.getSession();
+
       }
     };
-    
+
+    // Keep-Alive Heartbeat (Refresh berkala setiap 4 menit 30 detik)
+    const HEARTBEAT_INTERVAL = 4.5 * 60 * 1000;
+    const heartbeat = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.debug("[KMS] Heartbeat berkala: Menjaga koneksi tetap hangat...");
+        await supabase.auth.refreshSession();
+      }
+    }, HEARTBEAT_INTERVAL);
+
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
 
     return () => {
       subscription.unsubscribe();
+      clearInterval(heartbeat);
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       }

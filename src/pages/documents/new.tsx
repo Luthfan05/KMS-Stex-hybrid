@@ -349,7 +349,10 @@ function NewDocumentForm() {
                 <button type="button" onClick={() => insertMarkdown('### ')}>H3</button>
                 <button type="button" onClick={() => insertMarkdown('**', '**')}>B</button>
                 <button type="button" onClick={() => insertMarkdown('*', '*')}>I</button>
-                <button type="button" onClick={() => insertMarkdown('- ')}>• List</button>
+                <button type="button" onClick={() => insertMarkdown('- ')}>• L1</button>
+                <button type="button" onClick={() => insertMarkdown('  - ')}>• L2</button>
+                <button type="button" onClick={() => insertMarkdown('    - ')}>• L3</button>
+                <button type="button" onClick={() => insertMarkdown('\n---\n\n')}>Garis</button>
                 <button type="button" onClick={() => insertMarkdown('> ')}>Quote</button>
                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
                   {uploadingImage ? 'Mengupload...' : '🖼 Gambar'}

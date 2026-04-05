@@ -37,6 +37,7 @@ function EditDocumentForm() {
   const [currentVersion, setCurrentVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -181,6 +182,46 @@ function EditDocumentForm() {
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!docData) return;
+    if (!window.confirm('Apakah Anda yakin ingin menghapus dokumen ini? Tindakan ini tidak dapat dibatalkan.')) return;
+    
+    setDeleting(true);
+    setError('');
+
+    const sessionActive = await checkSession();
+    if (!sessionActive) {
+      setError('Sesi Anda telah berakhir. Harap buka tab baru untuk Login kembali.');
+      setDeleting(false);
+      return;
+    }
+
+    try {
+      await supabase.from('activity_logs').insert({
+        user_id: currentUser?.id,
+        action: 'delete_document',
+        document_id: docData.id,
+      });
+
+      const { error: delErr } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', docData.id);
+
+      if (delErr) {
+        setError(delErr.message);
+        setDeleting(false);
+        return;
+      }
+
+      localStorage.removeItem(`kms_edit_doc_draft_${docData.id}`);
+      window.location.href = '/documents';
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan saat menghapus.');
+      setDeleting(false);
     }
   };
 
@@ -375,7 +416,10 @@ function EditDocumentForm() {
                 <button type="button" onClick={() => insertMarkdown('### ')}>H3</button>
                 <button type="button" onClick={() => insertMarkdown('**', '**')}>B</button>
                 <button type="button" onClick={() => insertMarkdown('*', '*')}>I</button>
-                <button type="button" onClick={() => insertMarkdown('- ')}>• List</button>
+                <button type="button" onClick={() => insertMarkdown('- ')}>• L1</button>
+                <button type="button" onClick={() => insertMarkdown('  - ')}>• L2</button>
+                <button type="button" onClick={() => insertMarkdown('    - ')}>• L3</button>
+                <button type="button" onClick={() => insertMarkdown('\n---\n\n')}>Garis</button>
                 <button type="button" onClick={() => insertMarkdown('> ')}>Quote</button>
                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
                   {uploadingImage ? 'Mengupload...' : '🖼 Gambar'}
@@ -405,18 +449,29 @@ function EditDocumentForm() {
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-          <a href={`/document?slug=${docData.slug}`} className="kms-btn kms-btn--ghost" style={{ width: 'auto', padding: '10px 24px' }}>
-            Batal
-          </a>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'space-between' }}>
           <button
-            type="submit"
-            className="kms-btn kms-btn--accent"
-            disabled={saving || !title.trim()}
-            style={{ width: 'auto', padding: '10px 28px', opacity: (saving || !title.trim()) ? 0.7 : 1 }}
+            type="button"
+            onClick={handleDelete}
+            className="kms-btn"
+            disabled={deleting}
+            style={{ width: 'auto', padding: '10px 24px', backgroundColor: 'var(--kms-danger)', color: 'white', opacity: deleting ? 0.7 : 1 }}
           >
-            {saving ? 'Menyimpan...' : `Simpan (v${currentVersion + 1})`}
+            {deleting ? 'Menghapus...' : 'Hapus Dokumen'}
           </button>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <a href={`/document?slug=${docData.slug}`} className="kms-btn kms-btn--ghost" style={{ width: 'auto', padding: '10px 24px' }}>
+              Batal
+            </a>
+            <button
+              type="submit"
+              className="kms-btn kms-btn--accent"
+              disabled={saving || !title.trim() || deleting}
+              style={{ width: 'auto', padding: '10px 28px', opacity: (saving || !title.trim() || deleting) ? 0.7 : 1 }}
+            >
+              {saving ? 'Menyimpan...' : `Simpan (v${currentVersion + 1})`}
+            </button>
+          </div>
         </div>
       </form>
     </div>
